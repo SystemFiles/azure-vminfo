@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 0.0.3 ] - 2022-10-11 23:43:31
+
+> BENS-0002 hotfix: bump lib ver
+
+### Changed
+
+- `01d9c80` - BENS-0002 added initial README for lib-vminfo
+- `508c69d` - BENS-0002 bumped cargo lib ver
+
+
+
 ## [ 0.0.2 ] - 2022-10-11 23:27:50
 
 > BENS-0001 Hotfix to fix dependencies so that crates.io likes us
@@ -68,4 +79,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `cdadc77` - ICP-9510 api somewhat implemented ... still needs work
 - `525ab29` - ICP-9510 build some more supporting code
 - `de3373d` - ICP-9510 got something working
-
