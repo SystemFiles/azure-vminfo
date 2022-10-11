@@ -1,0 +1,21 @@
+[package]
+name = "lib_vminfo"
+description = "A small library to help idiomatically pull instance data and metadata from Azure for Virtual Machines"
+homepage = "https://www.statcan.gc.ca"
+repository = "https://github.com/SystemFiles/azure-vminfo"
+documentation = "https://github.com/SystemFiles/azure-vminfo/README.md"
+license = "MIT"
+version = "0.1.0"
+authors = ["Ben Sykes <ben.sykes@statcan.gc.ca"]
+edition = "2021"
+keywords = ["vm", "metadata", "instancedata", "azure", "library"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+chrono = { version = "0.4" }
+reqwest = {version = "0.11", features = ["blocking", "json"]}
+
+[features]
+caching = []
+yaml_output = []

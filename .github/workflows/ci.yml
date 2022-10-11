@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+
+jobs:
+  rust_tests:
+    name: Run rust tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        manifests: ["./Cargo.toml", "./lib_vminfo/Cargo.toml"]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+      - name: Set up the Windows environment
+        run: |
+          choco install llvm
+          powershell.exe scripts/symlinks-to-hardlinks.ps1
+        if: runner.os == 'Windows'
+      - name: Set up the Mac environment
+        run: brew install autoconf automake libtool
+        if: runner.os == 'macOS'
+      - name: Cache cargo dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+              ~/.cargo/registry
+              ~/.cargo/git
+              target
+          key: ${{ runner.os }}-debug_opt3-${{ hashFiles('**/Cargo.lock') }}
+      - name: run rust tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose --manifest-path ${{ matrix.manifests }}
+      - name: check compilation without threading
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --no-default-features --manifest-path ${{ matrix.manifests }}
+  rust_deploy_libs:
+    name: Deploy Libs to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+      - uses: actions-rs/cargo@v1
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        with:
+          command: publish
+          args: --manifest-path ./lib_vminfo/Cargo.toml --all-features
+    needs:
+      - rust_tests
+  rust_deploy_app:
+    name: Deploy CLI App to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+      - uses: actions-rs/cargo@v1
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        with:
+          command: publish
+          args: --manifest-path ./Cargo.toml --all-features
+    needs:
+      - rust_tests
+      - rust_deploy_libs

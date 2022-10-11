@@ -1,0 +1,38 @@
+[package]
+name = "az-vminfo"
+description = "A basic CLI utility to grab many useful Virtual Machine details from the Azure Cloud using the Resouce Graph API"
+readme = "./README.md"
+homepage = "https://www.statcan.gc.ca"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+keywords = ["cli", "azure", "vm", "metadata", "instancedata"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "vminfo"
+path = "src/main.rs"
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+
+[dependencies]
+lib_vminfo = { version = "0.1", path = "./lib_vminfo" }
+rpassword = { version = "7.0.0" }
+serde = { version = "1.0", features = ["derive"] }
+clap = { version = "4.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+redis = "*"
+chrono = { version = "0.4" }
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.11", features = ["blocking", "json"] }
+
+
+[dependencies.confy]
+version = "0.5"
+features = ["yaml_conf"]
+default-features = false
