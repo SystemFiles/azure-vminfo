@@ -3,6 +3,14 @@ A simple utility written in Rust to pull useful virtual machine info from a conf
 
 ## Installation
 
+### Prerequisites
+
+The instructions to install assume you have the rust toolkit installed. You can install them using `rustup`
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
 ### Install with Cargo
 
 ```bash

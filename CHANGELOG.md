@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 0.0.2 ] - 2022-10-11 23:27:50
+
+> BENS-0001 Hotfix to fix dependencies so that crates.io likes us
+
+### Changed
+
+- `4a23684` - BENS-0001 updated dependency list with no wildcards and added rust install to docs
+
+
+
 ## [ 0.0.1 ] - 2022-10-11 23:10:54
 
 > ICP-9510 Implement vminfo in rust with paging
@@ -58,5 +68,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `cdadc77` - ICP-9510 api somewhat implemented ... still needs work
 - `525ab29` - ICP-9510 build some more supporting code
 - `de3373d` - ICP-9510 got something working
-
 
