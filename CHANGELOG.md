@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 0.0.5 ] - 2022-10-12 21:4:54
+
+> BENS-0004 update crate metadata and refactor AzCreds from CLI util mod
+
+### Changed
+
+- `10f007c` - BENS-0004 more descriptive cargo metadata and refactored some of the credential handling code
+
+
+
 ## [ 0.0.4 ] - 2022-10-12 0:2:33
 
 > BENS-0003 hotfix: added native dependencies to prerequisites and fixed a typo

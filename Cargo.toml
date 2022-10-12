@@ -1,11 +1,13 @@
 [package]
 name = "az-vminfo"
-description = "A basic CLI utility to grab many useful Virtual Machine details from the Azure Cloud using the Resouce Graph API"
+description = "A basic CLI utility to grab useful Virtual Machine metadata and instance data from the Azure Cloud using the Resouce Graph API"
 readme = "./README.md"
 homepage = "https://www.statcan.gc.ca"
+repository = "https://github.com/SystemFiles/azure-vminfo/"
 license = "MIT"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
+authors = ["Ben Sykes <ben.sykes@statcan.gc.ca"]
 keywords = ["cli", "azure", "vm", "metadata", "instancedata"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

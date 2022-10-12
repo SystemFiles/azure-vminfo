@@ -1,5 +1,5 @@
 # azure-vminfo
-A simple utility written in Rust to pull useful virtual machine info from a configured Azure tenant using the Azure Resource Graph APIs
+A Rust utility that pulls useful virtual machine metadata and instance data from a configured Azure tenant using the Azure Resource Graph API(s)
 
 ## Installation
 
@@ -45,3 +45,7 @@ Options:
   -e, --extensions    Specifies whether or not to display Azure extensions for each VM
   -h, --help          Print help information
 ```
+
+## Maintainer(s) / Contributor(s)
+
+- Ben Sykes <ben.sykes@statcan.gc.ca>

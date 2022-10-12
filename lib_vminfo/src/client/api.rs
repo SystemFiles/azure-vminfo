@@ -3,7 +3,7 @@ use super::error;
 use crate::models::query::{QueryRequest, QueryResponse};
 
 /// refers to the default endpoint exposed from the Microsoft Resource Graph API
-pub static MANAGEMENT_API_ENDPOINT: &str =
+static MANAGEMENT_API_ENDPOINT: &str =
 	"https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01";
 
 /// The 'vminfo' client wrapper that helps to abstract away unnecessary implementation details for interacting

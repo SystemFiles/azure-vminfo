@@ -57,6 +57,8 @@ impl Default for VirtualMachine {
 	}
 }
 
+/// deserializer that will take a JSON response as a string and pull out a valid IPv4 address
+/// if errors occur, will produce a default `0.0.0.0` address in the resulting struct
 fn parse_ipv4_address<'de, D>(d: D) -> Result<std::net::Ipv4Addr, D::Error>
 where
 	D: Deserializer<'de>,
