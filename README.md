@@ -11,10 +11,12 @@ The instructions to install assume you have the rust toolkit installed. You can 
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
+**note:** you will also need `openssl-devel` on RHEL or `libssl-devel` on Ubuntu/Fedora
+
 ### Install with Cargo
 
 ```bash
-cargo install azure-vminfo
+cargo install az-vminfo
 ```
 
 ### Install from Source

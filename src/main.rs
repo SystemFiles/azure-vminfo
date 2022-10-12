@@ -58,7 +58,7 @@ fn main() -> anyhow::Result<()> {
 
 	let virtual_machines: Vec<VirtualMachine> = get_vminfo_from_remote(&client, &args)?;
 
-	let result = serde_json::to_value(&virtual_machines)?;
+	let result = serde_json::to_string_pretty(&virtual_machines)?;
 
 	println!("{}", result);
 	Ok(())

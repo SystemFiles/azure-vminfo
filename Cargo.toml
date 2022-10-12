@@ -4,7 +4,7 @@ description = "A basic CLI utility to grab many useful Virtual Machine details f
 readme = "./README.md"
 homepage = "https://www.statcan.gc.ca"
 license = "MIT"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 keywords = ["cli", "azure", "vm", "metadata", "instancedata"]
 

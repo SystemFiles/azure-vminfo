@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 0.0.4 ] - 2022-10-12 0:2:33
+
+> BENS-0003 hotfix: added native dependencies to prerequisites and fixed a typo
+
+### Changed
+
+- `3be8e0c` - BENS-0003 native deps + typo fix + pretty output re-enabled
+
+
+
 ## [ 0.0.3 ] - 2022-10-11 23:43:31
 
 > BENS-0002 hotfix: bump lib ver
