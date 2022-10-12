@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 0.0.6 ] - 2022-10-12 21:17:1
+
+> BENS-0005 fix license for cargo
+
+### Changed
+
+- `f76206c` - BENS-0005 license fix applied to lib
+
+
+
 ## [ 0.0.5 ] - 2022-10-12 21:4:54
 
 > BENS-0004 update crate metadata and refactor AzCreds from CLI util mod
