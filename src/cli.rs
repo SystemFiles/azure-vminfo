@@ -1,6 +1,6 @@
 use clap::Parser;
 
-/// A simple utility written in Rust to pull useful virtual machine info from a configured Azure tenant using the Azure Resource Graph APIs
+/// A Rust utility to pull useful virtual machine data from a configured Azure tenant using the Azure Resource Graph APIs
 #[derive(Debug, Parser)]
 pub struct Cli {
 	/// Specifies one or more VM name(s) or a regular expression to match VM(s)

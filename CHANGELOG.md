@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 0.0.7 ] - 2022-10-13 19:32:49
+
+> BENS-0005 Small Changes for Text
+
+### Changed
+
+- `a7e69a7` - BENS-0005 updated license and cli description
+- `eed9e1e` - BENS-0005 fix license for cargo
+
+
+
 ## [ 0.0.6 ] - 2022-10-12 21:17:1
 
 > BENS-0005 fix license for cargo
