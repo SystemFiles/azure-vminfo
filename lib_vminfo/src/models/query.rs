@@ -25,7 +25,7 @@ impl QueryRequest {
 	///
 	/// ```
 	pub fn make(
-		vm_query_list: &Vec<String>,
+		query_items: &Vec<String>,
 		match_regex: bool,
 		show_extensions: bool,
 		skip: Option<u64>,
@@ -38,17 +38,23 @@ impl QueryRequest {
 		let skip_param: u64 = skip.unwrap_or(0);
 		let top_param: u16 = top.unwrap_or(1000);
 
+		// ensure all vm names are lowercased
+		let vm_list: Vec<String> = query_items
+			.into_iter()
+			.map(|vm| vm.to_lowercase())
+			.collect::<Vec<String>>();
+
 		// either interpret the query operand as a regular expression or as a list of hostname literals
 		if match_regex {
 			comparison_operator = "matches regex";
-			search_query = format!("'{}'", vm_query_list[0].clone());
+			search_query = format!("'{}'", vm_list[0].clone());
 		} else {
-			let mut query_list_iterator = vm_query_list.into_iter();
+			let mut query_list_iterator = vm_list.into_iter();
 			search_query.push_str("(");
 			search_query.push_str(
 				format!(
 					"'{}'",
-					query_list_iterator.next().unwrap_or(&String::from(""))
+					query_list_iterator.next().unwrap_or(String::from(""))
 				)
 				.as_str(),
 			); // push the first one in without the preceding ', '

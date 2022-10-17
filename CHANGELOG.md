@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 0.0.8 ] - 2022-10-17 14:11:32
+
+> BENS-0006 hotfix: ensure all cases supported for vm and regexp operands
+
+### Changed
+
+- `aa6ea7c` - BENS-0006 added lowecase formatter to query body make function
+
+
+
 ## [ 0.0.7 ] - 2022-10-13 19:32:49
 
 > BENS-0005 Small Changes for Text
