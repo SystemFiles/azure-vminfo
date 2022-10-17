@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 0.0.9 ] - 2022-10-17 14:14:36
+
+> BENS-0007 bump crate versions
+
+### Changed
+
+- `20d24b4` - BENS-0007 bumped lib and cli
+
+
+
 ## [ 0.0.8 ] - 2022-10-17 14:11:32
 
 > BENS-0006 hotfix: ensure all cases supported for vm and regexp operands
