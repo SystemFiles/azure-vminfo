@@ -57,8 +57,10 @@ impl Default for VirtualMachine {
 	}
 }
 
+///
 /// deserializer that will take a JSON response as a string and pull out a valid IPv4 address
 /// if errors occur, will produce a default `0.0.0.0` address in the resulting struct
+///
 fn parse_ipv4_address<'de, D>(d: D) -> Result<std::net::Ipv4Addr, D::Error>
 where
 	D: Deserializer<'de>,
@@ -70,6 +72,8 @@ where
 		Err(_) => Ok(std::net::Ipv4Addr::new(0, 0, 0, 0)),
 	}
 }
+
+// TODO: implement custom extensions deserializer that is more accepting of null keys in extension lists
 
 /// Describes a virtual machine extension in Azure
 #[derive(Debug, Clone, Serialize, Deserialize)]

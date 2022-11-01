@@ -80,6 +80,9 @@ impl QueryRequest {
 	}
 }
 
+///
+/// defines options that can be passed to a vminfo request
+///
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryRequestOptions {
 	#[serde(alias = "$skip", rename(serialize = "$skip"))]
@@ -110,11 +113,41 @@ impl Default for QueryRequestOptions {
 	}
 }
 
-/// Defines a format for an acceptable response from the Resource Graph API
+///
+/// special query response type for vminfo responses which can have a special format for errors thrown by Azure
+///
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum QueryResponseType {
+	/// defines the 200 response
+	Ok(QueryResponse),
+	/// defines any custom error response from Azure
+	Err {
+		/// entrypoint for any non-200 error body responses from Azure
+		error: AzureError,
+	},
+}
+
+///
+/// special error type for azure Resource Graph API errors
+///
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AzureError {
+	/// the Azure specific error code
+	pub code: String,
+	/// the Azure error message
+	pub message: String,
+}
+
+///
+///  Defines a format for an acceptable response from the Resource Graph API
+///
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryResponse {
+	/// total number of records/results returned from the Graph API
 	#[serde(alias = "totalRecords")]
 	pub total_results: u64,
+	/// list of Virtual Machines returned from the Graph API
 	pub data: Vec<VirtualMachine>,
 }
 

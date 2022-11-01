@@ -48,6 +48,10 @@ jobs:
           args: --no-default-features --manifest-path ${{ matrix.manifests }}
   rust_deploy_libs:
     name: Deploy Libs to crates.io
+    strategy:
+      matrix:
+        lib_manifests: [ "./lib_vminfo/Cargo.toml", "./az-auth/Cargo.toml" ]
+      fail-fast: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -61,7 +65,7 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         with:
           command: publish
-          args: --manifest-path ./lib_vminfo/Cargo.toml --all-features
+          args: --manifest-path ${{ matrix.lib_manifests }} --all-features
     needs:
       - rust_tests
   rust_deploy_app:

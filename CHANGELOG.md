@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 1.0.0 ] - 2022-11-1 21:37:40
+
+> ICP-9762-d1 Interactive Device-code OAuth2.0 Flow for User Auth
+
+### Added
+
+- `adc5296` - ICP-9762-d1 updated feature meta
+
+
+
 ## [ 0.0.9 ] - 2022-10-17 14:14:36
 
 > BENS-0007 bump crate versions

@@ -10,9 +10,17 @@ pub struct Cli {
 	)]
 	pub vm_operand: Vec<String>,
 
-	/// Specifies whether to prompt for credentials manually (will exit)
+	/// Specifies whether to prompt for credentials manually (will exit). Will default to user authentication method.
 	#[arg(long = "login", required = false)]
 	pub prompt_credentials: bool,
+
+	/// Specifies that azure-vminfo should use a service-principal (client_id and client_secret) to authenticate
+	#[arg(long = "service-principal", required = false)]
+	pub use_service_principal: bool,
+
+	/// Specifies that azure-vminfo should use an interactive (client_id and login challenge) authentication method
+	#[arg(long = "interactive", required = false)]
+	pub interactive_login: bool,
 
 	/// Specifies whether or not to enable regexp matching
 	#[arg(short = 'r', long = "match-regexp", required = false)]
@@ -40,6 +48,8 @@ impl Default for Cli {
 			match_regexp: false,
 			show_extensions: false,
 			prompt_credentials: false,
+			use_service_principal: false,
+			interactive_login: true,
 		}
 	}
 }
