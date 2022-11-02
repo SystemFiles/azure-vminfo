@@ -40,8 +40,7 @@ use std::{
 use crate::query::QueryResponseType;
 use crate::query::{QueryRequest, QueryResponse};
 use auth::{AzCredentials, Method};
-use error::{AuthErrorKind, Error, VMInfoResult};
-use reqwest::StatusCode;
+use error::{AuthErrorKind, Error, Kind, VMInfoResult};
 use serde::{Deserialize, Serialize};
 
 ///
@@ -62,6 +61,12 @@ pub trait PersistantStorage: Clone + Display {
 	/// defines a method for reading access and refresh tokens from a persistant storage solution
 	///
 	fn read(&self) -> VMInfoResult<AzCredentials>;
+	///
+	/// defines a method for clearing out the local credential and token cache
+	///
+	/// **note**: this WILL prevent the requests from being processed and will require authentication
+	///
+	fn clear(&self) -> VMInfoResult<()>;
 }
 
 ///
@@ -201,11 +206,25 @@ impl PersistantStorage for FileTokenStore {
 			serde_json::from_str::<AzCredentials>(&contents.as_str()).map_err(|err| {
 				error::auth(
 					Some(err),
-					AuthErrorKind::MissingToken,
+					AuthErrorKind::BadCredentials,
 					"could not parse credential contents to struct",
 				)
 			})?,
 		)
+	}
+
+	fn clear(&self) -> VMInfoResult<()> {
+		if !self.file_path.parent().unwrap().exists() {
+			Ok(())
+		} else {
+			let _ = File::create(&self.file_path).map_err(|err| {
+				error::other(
+					Some(err),
+					"could not truncate local token/credential cache file",
+				)
+			})?;
+			Ok(())
+		}
 	}
 }
 
@@ -235,24 +254,9 @@ where
 	subscriptions: Option<Vec<String>>,
 }
 
-impl<PS> Client<PS>
-where
-	PS: PersistantStorage,
-{
-	///
-	/// determines which authentication method is being used as primary on the client
-	///
-	pub fn auth_method(&self) -> Method {
-		match self.client_secret {
-			Some(_) => Method::ClientCredentials,
-			None => Method::DeviceCode,
-		}
-	}
-}
-
 impl Client<FileTokenStore> {
 	///
-	/// Creates a new Client using the 'FileTokenStore' persistence method
+	/// creates a new Client using the 'FileTokenStore' persistence method
 	///
 	pub fn new(
 		app_name: &str,
@@ -286,13 +290,37 @@ impl Client<FileTokenStore> {
 
 		c.load_credentials()
 	}
+}
 
+impl<PS> Client<PS>
+where
+	PS: PersistantStorage,
+{
 	///
-	/// performs a client login (**this is required to request anything from Azure Resource Graph**)
+	/// performs login with Azure authentication server using the client_credentials OAuth2.0 flow described by [RFC6749](https://www.rfc-editor.org/rfc/rfc6749#section-4.4)
 	///
-	pub fn login(mut self, method: auth::Method) -> VMInfoResult<Self> {
-		match method {
-			auth::Method::ClientCredentials => {
+	pub fn login_client_credentials(mut self, force: bool) -> VMInfoResult<Self> {
+		let _ = self.load_credentials();
+
+		match self.access_token() {
+			Some(_) => {
+				if !force {
+					Ok(self)
+				} else {
+					let tokens = auth::login_non_interactive(&auth::Configuration::new(
+						&self.tenant_id.as_str(),
+						&self.client_id.as_str(),
+						&self.client_secret,
+					))?;
+
+					self.active_tokens = Some(tokens);
+
+					self.save_credentials()?;
+
+					Ok(self)
+				}
+			}
+			_ => {
 				let tokens = auth::login_non_interactive(&auth::Configuration::new(
 					&self.tenant_id.as_str(),
 					&self.client_id.as_str(),
@@ -305,11 +333,37 @@ impl Client<FileTokenStore> {
 
 				Ok(self)
 			}
-			auth::Method::DeviceCode => {
+		}
+	}
+	///
+	/// performs login with Azure authentication server using the devicecode OAuth2.0 flow described by [RFC8628](https://www.rfc-editor.org/rfc/rfc8628#section-3.4)
+	///
+	pub fn login_device_code(mut self, force: bool) -> VMInfoResult<Self> {
+		let _ = self.load_credentials();
+
+		match self.access_token() {
+			Some(_) => {
+				if !force {
+					Ok(self)
+				} else {
+					let tokens = auth::login_interactive(&auth::Configuration::new(
+						&self.tenant_id.as_str(),
+						&self.client_id.as_str(),
+						&None,
+					))?;
+
+					self.active_tokens = Some(tokens);
+
+					self.save_credentials()?;
+
+					Ok(self)
+				}
+			}
+			_ => {
 				let tokens = auth::login_interactive(&auth::Configuration::new(
 					&self.tenant_id.as_str(),
 					&self.client_id.as_str(),
-					&self.client_secret,
+					&None,
 				))?;
 
 				self.active_tokens = Some(tokens);
@@ -318,6 +372,23 @@ impl Client<FileTokenStore> {
 
 				Ok(self)
 			}
+		}
+	}
+
+	fn reauth(&self) -> VMInfoResult<Self> {
+		match self.auth_method() {
+			Method::ClientCredentials => self.clone().login_client_credentials(true),
+			Method::DeviceCode => self.clone().login_device_code(true),
+		}
+	}
+
+	///
+	/// determines which authentication method is being used as primary on the client
+	///
+	pub fn auth_method(&self) -> Method {
+		match self.client_secret {
+			Some(_) => Method::ClientCredentials,
+			None => Method::DeviceCode,
 		}
 	}
 
@@ -353,16 +424,72 @@ impl Client<FileTokenStore> {
 		}
 	}
 
+	///
+	/// public vminfo query request method that wraps request() with special authentication handlers
+	///
+	/// ## authentication errors
+	///
+	/// This function will handle regular use authentication errors for you in processing your request,
+	/// but will throw an error back to the client if the authentication error cannot be resolved automatically.
+	/// This includes, but is no limited to:
+	///
+	/// - Bad Credentials
+	/// - Invalid request
+	/// - Network timeouts
+	/// - failed token refresh
+	/// - Permissions errors on scope or otherwise
+	///
+	pub fn query_vminfo(
+		&self,
+		query_operand: &Vec<String>,
+		match_regexp: bool,
+		show_extensions: bool,
+		skip: Option<u64>,
+		top: Option<u16>,
+	) -> VMInfoResult<QueryResponse> {
+		let resp: VMInfoResult<QueryResponse> =
+			self.request(query_operand, match_regexp, show_extensions, skip, top);
+
+		match resp {
+			Ok(r) => Ok(r),
+			Err(err) => match err.kind() {
+				Kind::AuthenticationError(aek) => match aek {
+					AuthErrorKind::MissingToken => {
+						self
+							.reauth()?
+							.request(query_operand, match_regexp, show_extensions, skip, top)
+					}
+					AuthErrorKind::TokenExpired => match self.auth_method() {
+						Method::ClientCredentials => {
+							self
+								.reauth()?
+								.request(query_operand, match_regexp, show_extensions, skip, top)
+						}
+						Method::DeviceCode => self.clone().exchange_refresh_token()?.request(
+							query_operand,
+							match_regexp,
+							show_extensions,
+							skip,
+							top,
+						),
+					},
+					_ => Err(err)?,
+				},
+				_ => Err(err)?,
+			},
+		}
+	}
+
 	/// creates a request to pull VM meta and instance data from Azure Resource Graph with filters and extra options possible
 	///
-	/// # Arguments
+	/// ## Arguments
 	/// - query_operand: specifies either a list of full host names for the VM hosts wishing to get data for XOR a single regular expression to match one or more hosts.
-	/// 							 if match_regexp = true, will only use the first query_operand for matching
+	/// 							 	 if match_regexp = true, will only use the first query_operand for matching
 	/// - match_regexp: specifies whether to match regular expressions instead of full host names
 	/// - show_extensions: specifies that vminfo should also return a list of VM extensions that are installed for each host matched
 	/// - skip: optionally specifies a number of host results to skip to help while working within the constraints of Resource Graph API's paging responses
 	/// - top: optionally specifies a number of hosts to return for each 'page' (MAXIMUM ALLOWED: 1000)
-	pub fn request(
+	fn request(
 		&self,
 		query_operand: &Vec<String>,
 		match_regexp: bool,
@@ -383,13 +510,11 @@ impl Client<FileTokenStore> {
 
 		let access_token_opt = match self.access_token() {
 			Some(t) => t,
-			_ => {
-				return Err(error::auth(
-					None::<Error>,
-					AuthErrorKind::MissingToken,
-					"access token not present",
-				))
-			}
+			_ => Err(error::auth(
+				None::<Error>,
+				AuthErrorKind::MissingToken,
+				"no access token provided for request",
+			))?,
 		};
 
 		let resp: QueryResponseType = http_client
@@ -399,7 +524,6 @@ impl Client<FileTokenStore> {
 			.send()
 			.map_err(|err| {
 				let status = err.status();
-				println!("{:?}", err);
 				error::request(
 					Some(err),
 					status,
@@ -409,7 +533,6 @@ impl Client<FileTokenStore> {
 			.json()
 			.map_err(|err| {
 				let status = err.status();
-				println!("{:?}", err);
 				error::request(
 					Some(err),
 					status,
@@ -433,16 +556,16 @@ impl Client<FileTokenStore> {
 				Ok(r)
 			}
 			QueryResponseType::Err { error } => {
-				return Err(error::request(
+				return Err(error::auth(
 					None::<Error>,
-					if error.code.contains("ExpiredAuthenticationToken") {
-						Some(StatusCode::UNAUTHORIZED)
-					} else if error.code.contains("InvalidAuthenticationToken") {
-						Some(StatusCode::BAD_REQUEST)
-					} else if error.code.contains("AccessDenied") {
-						Some(StatusCode::FORBIDDEN)
+					if error.code == "ExpiredAuthenticationToken".to_string() {
+						AuthErrorKind::TokenExpired
+					} else if error.code == "InvalidAuthenticationToken".to_string() {
+						AuthErrorKind::BadCredentials
+					} else if error.code == "AccessDenied".to_string() {
+						AuthErrorKind::AccessDenied
 					} else {
-						None
+						AuthErrorKind::BadRequest
 					},
 					format!("{}: {}", error.code, error.message).as_str(),
 				))?;
@@ -505,6 +628,12 @@ impl Client<FileTokenStore> {
 		self.save_credentials()?;
 
 		Ok(self.clone())
+	}
+	///
+	/// clears credentials from token/credential cache
+	///
+	pub fn clear_credential_cache(&self) -> VMInfoResult<()> {
+		self.token_store.clear()
 	}
 }
 

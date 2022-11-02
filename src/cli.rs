@@ -4,15 +4,18 @@ use clap::Parser;
 #[derive(Debug, Parser)]
 pub struct Cli {
 	/// Specifies one or more VM name(s) or a regular expression to match VM(s)
-	#[arg(
-		value_name = "vm_name_or_regexp",
-		required_unless_present("prompt_credentials")
-	)]
+	#[arg(value_name = "vm_name_or_regexp")]
+	#[arg(required_unless_present("perform_login"))]
+	#[arg(required_unless_present("perform_logout"))]
 	pub vm_operand: Vec<String>,
 
 	/// Specifies whether to prompt for credentials manually (will exit). Will default to user authentication method.
 	#[arg(long = "login", required = false)]
-	pub prompt_credentials: bool,
+	pub perform_login: bool,
+
+	/// Perform full logout operation. This will clear the credential/token cache and remove the user from the system
+	#[arg(long = "logout", required = false)]
+	pub perform_logout: bool,
 
 	/// Specifies that azure-vminfo should use a service-principal (client_id and client_secret) to authenticate
 	#[arg(long = "service-principal", required = false)]
@@ -47,7 +50,8 @@ impl Default for Cli {
 			vm_operand: vec!["".to_string()],
 			match_regexp: false,
 			show_extensions: false,
-			prompt_credentials: false,
+			perform_login: false,
+			perform_logout: false,
 			use_service_principal: false,
 			interactive_login: true,
 		}

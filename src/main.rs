@@ -5,9 +5,9 @@ mod util;
 use std::process;
 
 use clap::Parser;
-use lib_vminfo::auth::Method;
 use lib_vminfo::error::auth;
 use lib_vminfo::vm::VirtualMachine;
+use lib_vminfo::{auth::Method, error::AuthErrorKind};
 use serde::{Deserialize, Serialize};
 
 use cli::Cli;
@@ -38,7 +38,7 @@ fn main() -> anyhow::Result<()> {
 	let args: Cli = Cli::parse();
 
 	let client: LocalClient;
-	if args.prompt_credentials {
+	if args.perform_login {
 		if args.use_service_principal {
 			let creds = ask_credentials(Method::ClientCredentials)?;
 			let _ = LocalClient::new(
@@ -48,7 +48,7 @@ fn main() -> anyhow::Result<()> {
 				creds.client_secret,
 				None,
 			)?
-			.login(Method::ClientCredentials)?;
+			.login_client_credentials(true)?;
 		} else {
 			let creds = ask_credentials(Method::DeviceCode)?;
 			let _ = LocalClient::new(
@@ -58,25 +58,31 @@ fn main() -> anyhow::Result<()> {
 				creds.client_secret,
 				None,
 			)?
-			.login(Method::DeviceCode)?;
+			.login_device_code(true)?;
 		}
 		println!("login successful!");
+
+		process::exit(0)
+	} else if args.perform_logout {
+		println!("clearing stored credentials");
+		LocalClient::new(APP_NAME, "", "", None, None)?.clear_credential_cache()?;
+		println!("stored credentials have been removed and client has been deauthenticated");
+
 		process::exit(0)
 	}
 
 	client = match LocalClient::from_store(APP_NAME) {
 		Ok(c) => c,
-		Err(e) => {
+		Err(_) => {
 			return Err(auth(
-				Some(e),
-				lib_vminfo::error::AuthErrorKind::BadCredentials,
+				None::<lib_vminfo::error::Error>,
+				AuthErrorKind::MissingToken,
 				"missing credentials for client. re-run with '--login' to authenticate",
 			))?
 		}
 	};
 
-	let virtual_machines: Vec<VirtualMachine> =
-		get_vminfo_from_remote(&client, &args, &client.auth_method())?;
+	let virtual_machines: Vec<VirtualMachine> = get_vminfo_from_remote(&client, &args)?;
 
 	let result = serde_json::to_string_pretty(&virtual_machines)?;
 

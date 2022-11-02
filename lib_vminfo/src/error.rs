@@ -30,19 +30,34 @@ pub enum AuthErrorKind {
 	/// Bad authentication configuration format / content
 	///
 	BadRequest,
+	///
+	/// Permissions not valid
+	///
+	AccessDenied,
+}
+
+impl From<AuthErrorKind> for reqwest::StatusCode {
+	fn from(k: AuthErrorKind) -> Self {
+		match k {
+			AuthErrorKind::AccessDenied => reqwest::StatusCode::FORBIDDEN,
+			AuthErrorKind::BadCredentials => reqwest::StatusCode::UNAUTHORIZED,
+			AuthErrorKind::BadRefresh => reqwest::StatusCode::UNAUTHORIZED,
+			AuthErrorKind::MissingToken => reqwest::StatusCode::UNAUTHORIZED,
+			AuthErrorKind::TokenExpired => reqwest::StatusCode::UNAUTHORIZED,
+			AuthErrorKind::BadRequest => reqwest::StatusCode::BAD_REQUEST,
+		}
+	}
 }
 
 impl std::fmt::Display for AuthErrorKind {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match *self {
-			Self::BadCredentials => write!(f, "Bad Credentials Provided"),
-			Self::MissingToken => write!(f, "Access or Refresh token missing"),
+			Self::BadCredentials => write!(f, "Bad credentials provided"),
+			Self::MissingToken => write!(f, "Access or refresh token missing"),
 			Self::TokenExpired => write!(f, "Access token is expired"),
-			Self::BadRefresh => write!(
-				f,
-				"Credentials cannot be refreshed using the provided Refresh token"
-			),
+			Self::BadRefresh => write!(f, "Failed to refresh access"),
 			Self::BadRequest => write!(f, "Bad authentication / authorization request"),
+			Self::AccessDenied => write!(f, "Access denied"),
 		}
 	}
 }

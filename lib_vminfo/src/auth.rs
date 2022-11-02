@@ -446,12 +446,7 @@ pub fn exchange_refresh_tokens(
 		})?),
 	);
 
-	let mut token_result: AzureTokenResponse<EmptyExtraTokenFields, BasicTokenType> =
-		AzureTokenResponse::new(
-			AccessToken::new("s".to_string()),
-			BasicTokenType::Bearer,
-			EmptyExtraTokenFields {},
-		);
+	let token_result: AzureTokenResponse<EmptyExtraTokenFields, BasicTokenType>;
 	if let Some(rt) = refresh_token {
 		token_result = client
 			.exchange_refresh_token(&RefreshToken::new(rt))
@@ -463,6 +458,18 @@ pub fn exchange_refresh_tokens(
 					"refresh token provided could not be used to obtain a new access token",
 				)
 			})?;
+
+		Ok(AuthTokens {
+			access_token: token_result.access_token.secret().to_string(),
+			refresh_token: match token_result.refresh_token() {
+				Some(rt) => Some(rt.secret().to_owned()),
+				_ => Err(auth(
+					None::<Error>,
+					AuthErrorKind::MissingToken,
+					"no refresh token supplied with login ... this is unusable",
+				))?,
+			},
+		})
 	} else {
 		Err(auth(
 			None::<Error>,
@@ -470,16 +477,4 @@ pub fn exchange_refresh_tokens(
 			"access token is expired and failed to exchange refresh token. reauthentication is required",
 		))?
 	}
-
-	Ok(AuthTokens {
-		access_token: token_result.access_token().secret().to_owned(),
-		refresh_token: match token_result.refresh_token() {
-			Some(rt) => Some(rt.secret().to_owned()),
-			_ => Err(auth(
-				None::<Error>,
-				AuthErrorKind::MissingToken,
-				"no refresh token supplied with login ... this is unusable",
-			))?,
-		},
-	})
 }

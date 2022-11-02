@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 1.0.1 ] - 2022-11-2 22:59:28
+
+> BENS-0008 better refresh handling
+
+### Changed
+
+- `f2e9acb` - BENS-0008 final fixup
+- `a8d3d22` - BENS-0008 removed old debug messages
+- `40afd38` - BENS-0008 Test Build (3)
+- `23f9645` - BENS-0008 Test Build (2)
+- `bee6e3b` - BENS-0008 Test Build (1)
+- `335a467` - BENS-0008 Test Build (0)
+- `0315f11` - BENS-0008 missing logout option description
+- `a4dffc3` - BENS-0008 added option to clear local token cache
+- `71f8d99` - BENS-0008 refactored auth again
+
+
+
 ## [ 1.0.0 ] - 2022-11-1 21:37:40
 
 > ICP-9762-d1 Interactive Device-code OAuth2.0 Flow for User Auth

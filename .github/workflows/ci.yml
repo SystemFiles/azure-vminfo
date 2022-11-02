@@ -50,7 +50,7 @@ jobs:
     name: Deploy Libs to crates.io
     strategy:
       matrix:
-        lib_manifests: [ "./lib_vminfo/Cargo.toml", "./az-auth/Cargo.toml" ]
+        lib_manifests: [ "./lib_vminfo/Cargo.toml" ]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
