@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 1.0.4 ] - 2022-11-3 18:56:24
+
+> BENS-0011 hotfix: resolved dependency for cross-compile linux and macos
+
+### Changed
+
+- `770652b` - BENS-0011 fix applied
+
+
+
 ## [ 1.0.3 ] - 2022-11-3 18:18:38
 
 > BENS-0010 Hotfix for doctests

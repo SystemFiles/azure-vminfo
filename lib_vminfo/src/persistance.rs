@@ -14,6 +14,7 @@ use std::{
 };
 
 use serde::{de::DeserializeOwned, Serialize};
+use std::str::FromStr;
 
 use crate::{
 	auth::AzCredentials,
@@ -57,8 +58,6 @@ impl FileTokenStore {
 	///
 	#[cfg(target_os = "macos")]
 	pub fn new(app_name: &str) -> VMInfoResult<FileTokenStore> {
-		use std::str::FromStr;
-
 		let username: String = String::from(users::get_current_username().unwrap().to_str().unwrap());
 
 		#[cfg(target_os = "macos")]
