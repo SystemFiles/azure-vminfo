@@ -6,14 +6,14 @@
 //!
 //! To install and use this library, simply add it to your `[dependencies]` in your `Cargo.toml`
 //!
-//! ```toml
+//! ```ignore
 //! [dependencies]
 //! lib_vminfo = { version = "1.0", path = "./lib_vminfo" }
 //! ```
 //!
 //! ## Usage
 //!
-//! ```rust
+//! ```ignore
 //!
 //! // using a local client (local file cache)
 //! let client: LocalClient = LocalClient::new(
@@ -64,7 +64,6 @@
 //!
 //! - Ben Sykes (ben.sykes@statcan.gc.ca)
 //!
-//! ```
 //!
 
 ///

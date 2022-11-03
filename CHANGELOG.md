@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 1.0.3 ] - 2022-11-3 18:18:38
+
+> BENS-0010 Hotfix for doctests
+
+### Changed
+
+- `ed3da04` - BENS-0010 added ignore for invalid doctests
+
+
+
 ## [ 1.0.2 ] - 2022-11-3 18:12:30
 
 > BENS-0009 cleanup for lib and better documentation
