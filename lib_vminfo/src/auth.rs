@@ -1,3 +1,9 @@
+//!
+//!
+//! Module provides authentication handling for Azure
+//!
+//!
+
 use super::error::{auth, client_config, Error, VMInfoResult};
 use crate::error::AuthErrorKind;
 use crate::AuthTokens;
@@ -225,7 +231,7 @@ impl std::fmt::Display for Method {
 /// Defines a Azure Credential object which contains necessary credentials for authentication with the Azure Resource Graph.
 /// This object must be in compliance with credential storage requirements for the purposes of persisting login data across sessions
 ///
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AzCredentials {
 	/// Azure tenant ID
 	pub tenant_id: String,
@@ -283,6 +289,14 @@ impl Default for Configuration {
 ///
 /// performs a non-interactive login using a client_id and password (secret)
 ///
+/// ## Example
+///
+/// ```ignore
+/// let tokens = auth::login_non_interactive(Configuration::new(tenant_id, client_id, Some(client_secret)))?;
+///
+/// println!("{:?}", tokens);
+/// ```
+///
 pub fn login_non_interactive(conf: &Configuration) -> VMInfoResult<AuthTokens> {
 	let token_url: String = format!(
 		"https://login.microsoftonline.com/{}/oauth2/token",
@@ -336,6 +350,14 @@ pub fn login_non_interactive(conf: &Configuration) -> VMInfoResult<AuthTokens> {
 
 ///
 /// performs an interactive login provided a client_id and login challenge
+///
+/// ## Example
+///
+/// ```ignore
+/// let tokens = auth::login_interactive(&Configuration::new(tenant_id, client_id, None))?;
+///
+/// println!("{:?}", tokens);
+/// ```
 ///
 pub fn login_interactive(conf: &Configuration) -> VMInfoResult<AuthTokens> {
 	let token_url: String = format!(
@@ -422,6 +444,14 @@ pub fn login_interactive(conf: &Configuration) -> VMInfoResult<AuthTokens> {
 ///
 /// performs a token refresh provided a valid refresh token
 ///
+/// ## Example
+///
+/// ```ignore
+/// let tokens = auth::exchange_refresh_tokens("XXXXXXX-XXXXXX-XXXX-XXX", "XXXXXX-XXXX-XXX-XX", Some("ABC".to_string()))?;
+///
+/// println!("{:?}", tokens);
+/// ```
+///
 pub fn exchange_refresh_tokens(
 	tenant_id: &str,
 	client_id: &str,
@@ -431,6 +461,14 @@ pub fn exchange_refresh_tokens(
 		"https://login.microsoftonline.com/{}/oauth2/token",
 		tenant_id
 	);
+
+	if refresh_token.is_none() {
+		Err(auth(
+			None::<Error>,
+			AuthErrorKind::MissingToken,
+			"missing required refresh token to perform access token refresh",
+		))?
+	}
 
 	let client = AzureClient::new(
 		ClientId::new(client_id.to_string()),

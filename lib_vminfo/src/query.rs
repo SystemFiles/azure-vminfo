@@ -1,3 +1,9 @@
+//!
+//!
+//! Provides request and response types for vminfo queries to the Azure Resource Graph API
+//!
+//!
+
 use super::vm::VirtualMachine;
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +25,14 @@ impl QueryRequest {
 	/// ```ignore
 	/// use reqwest::blocking::Client;
 	///
-	/// let body = QueryRequest::make(["l-sykeben-1", "l-sykeben-2", "l-sykeben-3", "l-sykeben-N"]);
+	/// let body = QueryRequest::make(
+	/// 	["ubuntu-01".to_string(), "ubuntu-01".to_string()],
+	/// 	false,
+	/// 	false,
+	/// 	None,
+	/// 	None,
+	/// 	None
+	/// );
 	/// let http_client = Client::new();
 	/// let resp = http_client.post("...").json(&body)?.send()?.json()?;
 	///

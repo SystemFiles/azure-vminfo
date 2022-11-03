@@ -2,6 +2,70 @@
 //!
 //! A small library designed to make querying detailed VM information from Azure Resource Graph as simple and painless as possible
 //!
+//! ## Installation
+//!
+//! To install and use this library, simply add it to your `[dependencies]` in your `Cargo.toml`
+//!
+//! ```toml
+//! [dependencies]
+//! lib_vminfo = { version = "1.0", path = "./lib_vminfo" }
+//! ```
+//!
+//! ## Usage
+//!
+//! ```rust
+//!
+//! // using a local client (local file cache)
+//! let client: LocalClient = LocalClient::new(
+//!		APP_NAME,
+//!		tenant_id,
+//!		client_id,
+//!		Some(client_secret),
+//!		vec!["sub_id1", ... "sub_idN"],
+//!	)?.login_client_credentials()?;
+//!
+//! // get the first 100 VMs that match the provided regexp
+//! let resp: QueryResponse = client.query_vminfo(
+//!		vec!["ubuntu-vm[0-9]+"],
+//!		true,
+//!		false,
+//!		Some(0),
+//!		Some(100),
+//!	)?;
+//!
+//! ...
+//! ```
+//!
+//! ## License
+//!
+//! MIT License
+//!
+//! Copyright (c) His Majesty the King in Right of Canada, as represented by the minister responsible for Statistics Canada, 2022.
+//!
+//! Permission is hereby granted, free of charge, to any person obtaining a copy
+//! of this software and associated documentation files (the "Software"), to deal
+//! in the Software without restriction, including without limitation the rights
+//! to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//! copies of the Software, and to permit persons to whom the Software is
+//! furnished to do so, subject to the following conditions:
+//!
+//! The above copyright notice and this permission notice shall be included in all
+//! copies or substantial portions of the Software.
+//!
+//! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//! AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//! LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//! OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//! SOFTWARE.
+//!
+//! ## Maintainer(s)
+//!
+//! - Ben Sykes (ben.sykes@statcan.gc.ca)
+//!
+//! ```
+//!
 
 ///
 /// defines authentication behaviour and data types for handling Azure authentication
@@ -11,6 +75,11 @@ pub mod auth;
 /// defines error and result types used in the client library
 ///
 pub mod error;
+
+///
+/// defines types for handling persistence of authentication details (tokens / client credentials)
+///
+pub mod persistance;
 
 ///
 /// Query Request and Response types
@@ -29,18 +98,13 @@ pub mod caching {
 	pub mod redis;
 }
 
-use std::{
-	fmt::Display,
-	fs::{self, File},
-	io::Write,
-	path::PathBuf,
-	str::FromStr,
-};
+use std::fmt::Display;
 
 use crate::query::QueryResponseType;
 use crate::query::{QueryRequest, QueryResponse};
 use auth::{AzCredentials, Method};
 use error::{AuthErrorKind, Error, Kind, VMInfoResult};
+use persistance::{FileTokenStore, PersistantStorage};
 use serde::{Deserialize, Serialize};
 
 ///
@@ -48,26 +112,6 @@ use serde::{Deserialize, Serialize};
 ///
 const MANAGEMENT_API_ENDPOINT: &str =
 	"https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01";
-
-///
-/// Defines common methods for a persistant storage solution for storing Access and Refresh Tokens.
-///
-pub trait PersistantStorage: Clone + Display {
-	///
-	/// defines a method for writing / storing a pair of access and refresh tokens
-	///
-	fn write(&self, credentials: &AzCredentials) -> VMInfoResult<()>;
-	///
-	/// defines a method for reading access and refresh tokens from a persistant storage solution
-	///
-	fn read(&self) -> VMInfoResult<AzCredentials>;
-	///
-	/// defines a method for clearing out the local credential and token cache
-	///
-	/// **note**: this WILL prevent the requests from being processed and will require authentication
-	///
-	fn clear(&self) -> VMInfoResult<()>;
-}
 
 ///
 /// Defines AuthTokens as a pair of access and refresh tokens
@@ -94,157 +138,13 @@ impl Default for AuthTokens {
 	}
 }
 
-///
-/// A Persistence Method for storage of Access and Refresh token pairs
-///
-#[derive(Debug, Clone)]
-pub struct FileTokenStore {
-	file_path: PathBuf,
-}
-
-impl FileTokenStore {
-	///
-	/// creates a new FileTokenStore
-	///
-	#[cfg(target_os = "macos")]
-	pub fn new(app_name: &str) -> VMInfoResult<FileTokenStore> {
-		let username: String = String::from(users::get_current_username().unwrap().to_str().unwrap());
-
-		#[cfg(target_os = "macos")]
-		let path = PathBuf::from_str(
-			format!(
-				"/Users/{}/Library/Application Support/{}/tokens.json",
-				username, app_name
-			)
-			.as_str(),
-		)
-		.map_err(|err| {
-			error::client_config(Some(err), "failed to generate path for token persistence")
-		})?;
-
-		let store = Self { file_path: path };
-		store.create_config()?;
-
-		if !store.file_path.exists() {
-			let _: File = File::create(&store.file_path)
-				.map_err(|err| error::client_config(Some(err), "failed to create token storage file"))?;
-		}
-
-		Ok(store)
-	}
-
-	///
-	/// creates a new FileTokenStore
-	///
-	#[cfg(target_os = "linux")]
-	pub fn new(app_name: &str) -> VMInfoResult<FileTokenStore> {
-		let username: String = String::from(users::get_current_username().unwrap().to_str().unwrap());
-
-		let path = match username.as_str() {
-			"root" => {
-				PathBuf::from_str(format!("/{}/.config/{}/tokens.json", username, app_name).as_str())
-					.map_err(|err| {
-						error::client_config(Some(err), "failed to generate path for token persistence")
-					})?
-			}
-			_ => {
-				PathBuf::from_str(format!("/home/{}/.config/{}/tokens.json", username, app_name).as_str())
-					.map_err(|err| {
-					error::client_config(Some(err), "failed to generate path for token persistence")
-				})?
-			}
-		};
-
-		let store = Self { file_path: path };
-		store.create_config()?;
-
-		Ok(store)
-	}
-
-	fn create_config(&self) -> VMInfoResult<()> {
-		fs::create_dir_all(&self.file_path.parent().unwrap())
-			.map_err(|err| error::client_config(Some(err), "failed to create config directory path"))?;
-
-		Ok(())
-	}
-}
-
-impl PersistantStorage for FileTokenStore {
-	fn write(&self, credentials: &AzCredentials) -> VMInfoResult<()> {
-		if !self.file_path.parent().unwrap().exists() {
-			self.create_config()?
-		}
-
-		let mut tokens_file: File = File::create(&self.file_path)
-			.map_err(|err| error::other(Some(err), "failed to create token storage file"))?;
-		tokens_file
-			.write(
-				serde_json::to_string_pretty(&credentials)
-					.map_err(|err| {
-						error::other(
-							Some(err),
-							"failed to generate JSON for auth tokens persistence",
-						)
-					})?
-					.as_bytes(),
-			)
-			.map_err(|err| error::other(Some(err), "failed to write auth tokens to file"))?;
-
-		Ok(())
-	}
-
-	fn read(&self) -> VMInfoResult<AzCredentials> {
-		let contents = fs::read_to_string(&self.file_path).map_err(|err| {
-			error::auth(
-				Some(err),
-				AuthErrorKind::MissingToken,
-				"could not read credentials from file.",
-			)
-		})?;
-
-		Ok(
-			serde_json::from_str::<AzCredentials>(&contents.as_str()).map_err(|err| {
-				error::auth(
-					Some(err),
-					AuthErrorKind::BadCredentials,
-					"could not parse credential contents to struct",
-				)
-			})?,
-		)
-	}
-
-	fn clear(&self) -> VMInfoResult<()> {
-		if !self.file_path.parent().unwrap().exists() {
-			Ok(())
-		} else {
-			let _ = File::create(&self.file_path).map_err(|err| {
-				error::other(
-					Some(err),
-					"could not truncate local token/credential cache file",
-				)
-			})?;
-			Ok(())
-		}
-	}
-}
-
-impl Display for FileTokenStore {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(
-			f,
-			"Token Secret File Located at: {}",
-			self.file_path.as_path().to_str().unwrap_or("unknown")
-		)
-	}
-}
-
 #[derive(Debug, Clone)]
 ///
 /// Defines the vminfo Client
 ///
 pub struct Client<PS>
 where
-	PS: PersistantStorage,
+	PS: PersistantStorage<AzCredentials>,
 {
 	tenant_id: String,
 	client_id: String,
@@ -294,7 +194,7 @@ impl Client<FileTokenStore> {
 
 impl<PS> Client<PS>
 where
-	PS: PersistantStorage,
+	PS: PersistantStorage<AzCredentials>,
 {
 	///
 	/// performs login with Azure authentication server using the client_credentials OAuth2.0 flow described by [RFC6749](https://www.rfc-editor.org/rfc/rfc6749#section-4.4)
@@ -639,7 +539,7 @@ where
 
 impl<PS> AsMut<Client<PS>> for Client<PS>
 where
-	PS: PersistantStorage,
+	PS: PersistantStorage<AzCredentials>,
 {
 	fn as_mut(&mut self) -> &mut Client<PS> {
 		self
@@ -648,7 +548,7 @@ where
 
 impl<PS> Display for Client<PS>
 where
-	PS: PersistantStorage,
+	PS: PersistantStorage<AzCredentials>,
 {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(

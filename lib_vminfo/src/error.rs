@@ -1,3 +1,8 @@
+//!
+//!
+//! Provides common error types for the vminfo library
+//!
+//!
 #[allow(unused)]
 #[allow(unused_must_use)]
 use super::auth::Method;

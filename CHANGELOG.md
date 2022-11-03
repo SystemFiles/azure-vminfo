@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 1.0.2 ] - 2022-11-3 18:12:30
+
+> BENS-0009 cleanup for lib and better documentation
+
+### Changed
+
+- `02d4e75` - BENS-0009 cleaned up and refactored token persistance for lib vminfo
+- `5b7c477` - BENS-0009 checkpoint
+
+
+
 ## [ 1.0.1 ] - 2022-11-2 22:59:28
 
 > BENS-0008 better refresh handling

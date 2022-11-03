@@ -1,3 +1,8 @@
+//!
+//!
+//! Provides a model for Virtual Machines
+//!
+//!
 use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};
 
@@ -73,7 +78,7 @@ where
 	}
 }
 
-// TODO: implement custom extensions deserializer that is more accepting of null keys in extension lists
+// TODO: implement custom extensions deserializer that is more accepting of null keys in extension lists ([Github Issue](https://github.com/SystemFiles/azure-vminfo/issues/1))
 
 /// Describes a virtual machine extension in Azure
 #[derive(Debug, Clone, Serialize, Deserialize)]
