@@ -25,6 +25,10 @@ pub struct Cli {
 	#[arg(long = "interactive", required = false)]
 	pub interactive_login: bool,
 
+	/// Specifies whether to ignore the cache and force data to be pulled from Resource Graph API directly
+	#[arg(short = 'c', long = "no-cache", required = false)]
+	pub no_cache: bool,
+
 	/// Specifies whether or not to enable regexp matching
 	#[arg(short = 'r', long = "match-regexp", required = false)]
 	pub match_regexp: bool,
@@ -52,6 +56,7 @@ impl Default for Cli {
 			show_extensions: false,
 			perform_login: false,
 			perform_logout: false,
+			no_cache: false,
 			use_service_principal: false,
 			interactive_login: true,
 		}

@@ -89,6 +89,10 @@ pub enum Kind {
 	///
 	RequestError(Option<reqwest::StatusCode>),
 	///
+	/// Error thrown if there was any issue related to caching VM results
+	///
+	ResultCacheError,
+	///
 	/// Error thrown if there is not sufficient information to determine what the error was that occurred
 	///
 	Other,
@@ -173,6 +177,7 @@ impl std::fmt::Display for Error {
 				)
 				.as_str(),
 			),
+			Kind::ResultCacheError => f.write_str("caching error"),
 			Kind::Other => f.write_str("unknown error"),
 		};
 
@@ -215,6 +220,13 @@ pub fn request<E: Into<BoxError>>(
 	message: &str,
 ) -> Error {
 	Error::new(Kind::RequestError(req_status), e, message)
+}
+
+///
+/// builds an error for any caching issues that may appear when caching results
+///
+pub fn caching<E: Into<BoxError>>(e: Option<E>, message: &str) -> Error {
+	Error::new(Kind::ResultCacheError, e, message)
 }
 
 ///

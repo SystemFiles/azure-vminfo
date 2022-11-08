@@ -5,7 +5,7 @@ homepage = "https://www.statcan.gc.ca"
 repository = "https://github.com/SystemFiles/azure-vminfo/"
 readme = "./README.md"
 license = "MIT"
-version = "1.0.3"
+version = "1.1.0"
 authors = ["Ben Sykes <ben.sykes@statcan.gc.ca"]
 edition = "2021"
 keywords = ["vm", "metadata", "instancedata", "azure", "library"]
@@ -16,6 +16,4 @@ serde_json = { version = "1.0" }
 reqwest = {version = "0.11", features = ["blocking", "json"]}
 oauth2 = { version = "4.0", features = ["reqwest"] }
 users = { version = "0.11" }
-
-[features]
-caching = []
+redis = { version = "0.22", features = ["tls", "json"] }

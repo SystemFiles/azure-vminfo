@@ -3,39 +3,88 @@
 //! Provides a model for Virtual Machines
 //!
 //!
+use std::io;
+
+use redis::{from_redis_value, FromRedisValue, ToRedisArgs};
 use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};
 
+///
 /// Defines the fields that a host result should contain.
 /// This is Serializable from the Resource Graph response and to json for consumption outside of vminfo
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VirtualMachine {
+	///
+	/// The ID that uniquely identifies this Virtual Machine
+	///
 	#[serde(alias = "vmId", rename(serialize = "vmId"))]
 	vm_id: Option<String>,
+	///
+	/// The name of the Virtual Machine
+	///
 	#[serde(alias = "vmName", rename(serialize = "vmName"))]
-	vm_name: Option<String>,
+	pub vm_name: Option<String>,
+	///
+	/// The create timestamp that identifies when the Virtual Machine was created
+	///
 	created: Option<String>,
+	///
+	/// The subscription that this Virtual Machine resides in
+	///
 	sub: Option<String>,
+	///
+	/// The datacentre location where this Virtual Machine resides
+	///
 	location: Option<String>,
+	///
+	/// The resource group which this Virtual Machine resource resides in
+	///
 	rg: Option<String>,
+	///
+	/// The IP address for the Virtual Machine
+	///
 	#[serde(
 		alias = "privateIp",
 		rename(serialize = "privateIp"),
 		deserialize_with = "parse_ipv4_address"
 	)]
 	private_ip: std::net::Ipv4Addr,
+	///
+	/// The OS Type for this Virtual Machine (can be: Linux or Windows)
+	///
 	#[serde(alias = "osType", rename(serialize = "osType"))]
 	os_type: Option<String>,
+	///
+	/// The OS Distribution Name for this Virtual Machine (ie: Ubuntu, RedHat, etc.)
+	///
 	#[serde(alias = "osName", rename(serialize = "osName"))]
 	os_name: Option<String>,
+	///
+	/// The version fo the OS Distribution being run on the Virtual Machine
+	///
 	#[serde(alias = "osVersion", rename(serialize = "osVersion"))]
 	os_version: Option<String>,
+	///
+	/// The current power state for this Virtual Machine
+	///
 	powerstate: Option<String>,
+	///
+	/// The VM size specification as defined by Azure in their [vmsize documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes)
+	///
 	#[serde(alias = "vmSize", rename(serialize = "vmSize"))]
 	vm_size: Option<String>,
+	///
+	/// The primary Azure VNet that this Virtual Machine is connected to
+	///
 	#[serde(alias = "virtualNetwork", rename(serialize = "virtualNetwork"))]
 	virtual_network: Option<String>,
+	///
+	/// The primary Azure subnet that this Virtual Machine is connected to
+	///
 	subnet: Option<String>,
+	///
+	/// A List of Azure Virtual Machine Extensions that are installed for this VM (None if not requested)
+	///
 	#[serde(default)]
 	extensions: Vec<VirtualMachineExtension>,
 }
@@ -59,6 +108,54 @@ impl Default for VirtualMachine {
 			subnet: None,
 			extensions: vec![],
 		}
+	}
+}
+
+impl ToRedisArgs for VirtualMachine {
+	fn to_redis_args(&self) -> Vec<Vec<u8>> {
+		let v: Vec<u8> = serde_json::to_string(self)
+			.expect("cannot convert Virtual Machine to redis args")
+			.as_bytes()
+			.into_iter()
+			.map(|i| *i)
+			.collect();
+
+		vec![v]
+	}
+	fn write_redis_args<W>(&self, out: &mut W)
+	where
+		W: ?Sized + redis::RedisWrite,
+	{
+		let vm: VirtualMachine = self.clone();
+		let vm_str = serde_json::to_string(&vm).expect("cannot convert Virtual Machine to redis args");
+
+		// convert VM JSON to bytes
+		let vm_bytes: &[u8] = vm_str.as_bytes();
+
+		out.write_arg(vm_bytes)
+	}
+}
+
+impl FromRedisValue for VirtualMachine {
+	fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
+		match v {
+			redis::Value::Data(d) => Ok(
+				serde_json::from_slice::<VirtualMachine>(d).map_err(|err| redis::RedisError::from(err))?,
+			),
+			_ => Err(redis::RedisError::from(io::Error::new(
+				io::ErrorKind::InvalidData,
+				"Cannot read data into VirtualMachine type",
+			))),
+		}
+	}
+	fn from_redis_values(items: &[redis::Value]) -> redis::RedisResult<Vec<Self>> {
+		let mut res: Vec<VirtualMachine> = Vec::new();
+
+		for (_, v) in items.into_iter().enumerate() {
+			res.push(from_redis_value(v)?);
+		}
+
+		Ok(res)
 	}
 }
 

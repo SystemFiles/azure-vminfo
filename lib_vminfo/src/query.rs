@@ -5,6 +5,7 @@
 //!
 
 use super::vm::VirtualMachine;
+use redis::ToRedisArgs;
 use serde::{Deserialize, Serialize};
 
 /// specifies and acceptable request body format for Resource Graph to understand
@@ -170,6 +171,32 @@ impl Default for QueryResponse {
 			total_results: 0,
 			data: vec![],
 		}
+	}
+}
+
+impl ToRedisArgs for QueryResponse {
+	fn to_redis_args(&self) -> Vec<Vec<u8>> {
+		let r: Vec<u8> = serde_json::to_string(self)
+			.expect("cannot convert Virtual Machine to redis args")
+			.as_bytes()
+			.into_iter()
+			.map(|i| *i)
+			.collect();
+
+		vec![r]
+	}
+	fn write_redis_args<W>(&self, out: &mut W)
+	where
+		W: ?Sized + redis::RedisWrite,
+	{
+		let resp: QueryResponse = self.clone();
+		let resp_str =
+			serde_json::to_string(&resp).expect("cannot convert Virtual Machine to redis args");
+
+		// convert VM JSON to bytes
+		let resp_bytes: &[u8] = resp_str.as_bytes();
+
+		out.write_arg(resp_bytes)
 	}
 }
 

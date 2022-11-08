@@ -61,6 +61,7 @@ pub fn get_vminfo_from_remote(
 		&args.vm_operand,
 		args.match_regexp,
 		args.show_extensions,
+		args.no_cache,
 		None,
 		None,
 	)?;
@@ -75,6 +76,7 @@ pub fn get_vminfo_from_remote(
 				&args.vm_operand,
 				args.match_regexp,
 				args.show_extensions,
+				args.no_cache,
 				Some(skip_count),
 				None,
 			)?;

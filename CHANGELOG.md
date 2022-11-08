@@ -8,6 +8,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 1.1.0 ] - 2022-11-8 23:0:49
+
+> CLOUD-16508 Resource Result Caching
+
+### Added
+
+- `a897470` - CLOUD-16508 fixed up some of the documentation of CLI options
+- `9985bef` - CLOUD-16508 added no-cache option to cli
+- `ef527fb` - CLOUD-16508 squashed bug where cached results dont come through with all bad non-cached queries
+- `38eac85` - CLOUD-16508 removed caching as separate compile feature since client supports no-cache out of the box
+- `d58b1db` - CLOUD-16508 removed debug messages
+- `08704c2` - CLOUD-16508 Test Build (15)
+- `ce5cb46` - CLOUD-16508 Test Build (14)
+- `d54d4b4` - CLOUD-16508 Test Build (13)
+- `745dd6e` - CLOUD-16508 Test Build (12)
+- `9d8a9ed` - CLOUD-16508 Test Build (11)
+- `77935e3` - CLOUD-16508 Test Build (10)
+- `88a3012` - CLOUD-16508 Test Build (9)
+- `f4fd431` - CLOUD-16508 Test Build (8)
+- `0da851c` - CLOUD-16508 Test Build (7)
+- `5837e41` - CLOUD-16508 Test Build (6)
+- `e082e92` - CLOUD-16508 Test Build (5)
+- `7130799` - CLOUD-16508 Test Build (4)
+- `cbffb1f` - CLOUD-16508 Test Build (3)
+- `e862684` - CLOUD-16508 added very basic cache retrieval for query method on VMInfo client
+- `5954b59` - CLOUD-16508 added very basic cache retrieval for query method on VMInfo client
+- `c5d1be3` - CLOUD-16508 Test Build (2)
+- `9c26bff` - CLOUD-16508 Test Build (1)
+- `4cca2dc` - CLOUD-16508 Test Build (0)
+
+
+
 ## [ 1.0.4 ] - 2022-11-3 18:56:24
 
 > BENS-0011 hotfix: resolved dependency for cross-compile linux and macos

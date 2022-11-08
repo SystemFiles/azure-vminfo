@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 //!
 //! A small library designed to make querying detailed VM information from Azure Resource Graph as simple and painless as possible
 //!
@@ -6,23 +6,52 @@
 //!
 //! To install and use this library, simply add it to your `[dependencies]` in your `Cargo.toml`
 //!
+//! ## Getting Started
+//!
+//! The first thing to setup is your App Registration which will be used either as a client directly or through user-impersonation from an AAD user.
+//!
+//! ### Create the App Registration
+//!
+//! Create an App Registration with a name of your choosing and ensure that the Enterprise App is able to read all on
+//! the tenant.
+//!
+//! then ensure the following API permissions are set:
+//!
+//! - Azure Service Management > user_impersonation
+//! - Migrosoft Graph > User.Read
+//!
+//! Then make sure an admin provides consent for the Directory which contains your AAD users. Also make sure that
+//! any users that should be able to impersonate the Enterprise App are added as owners in the App Registration
+//!
+//! Under the `Authentication` section, add a redirect URI: `https://global.consent.azure-apim.net/redirect`
+//! then ensure that you check the boxes to allow Access tokens to be issued by the authroization endpoint
+//!
+//! Finally, under Advanced settings in the `Authentication` section, switch `Allow public client flows` to "Yes".
+//!
+//! ### Decide on an Authentication Method
+//!
+//! - Client Credentials (uses the Service Account (Enterprise App) directly)
+//! - User Impersonation (uses a user account to impersonate the Service Account (Enterprise App))
+//!
+//! ### Client Credentials
+//!
+//! Create a Secret in the `Certificates and Secrets` section of the App Registration.
+//! Record the Secret value as well as tenant ID and Client(app) ID for later.
+//!
+//! ### User Impersonation
+//!
+//! Record the Tenant ID and Client(app) ID for the App Registration from the `Overview Section` for later.
+//!
 //! ```ignore
 //! [dependencies]
 //! lib_vminfo = { version = "1.0", path = "./lib_vminfo" }
 //! ```
 //!
-//! ## Usage
+//! ## Basic Usage
+//!
+//! Below is basic usage of the VMInfo Client to grab VMs matching a regular expression and caching credentials locally in a file.
 //!
 //! ```ignore
-//!
-//! // using a local client (local file cache)
-//! let client: LocalClient = LocalClient::new(
-//!		APP_NAME,
-//!		tenant_id,
-//!		client_id,
-//!		Some(client_secret),
-//!		vec!["sub_id1", ... "sub_idN"],
-//!	)?.login_client_credentials()?;
 //!
 //! // get the first 100 VMs that match the provided regexp
 //! let resp: QueryResponse = client.query_vminfo(
@@ -35,30 +64,6 @@
 //!
 //! ...
 //! ```
-//!
-//! ## License
-//!
-//! MIT License
-//!
-//! Copyright (c) His Majesty the King in Right of Canada, as represented by the minister responsible for Statistics Canada, 2022.
-//!
-//! Permission is hereby granted, free of charge, to any person obtaining a copy
-//! of this software and associated documentation files (the "Software"), to deal
-//! in the Software without restriction, including without limitation the rights
-//! to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//! copies of the Software, and to permit persons to whom the Software is
-//! furnished to do so, subject to the following conditions:
-//!
-//! The above copyright notice and this permission notice shall be included in all
-//! copies or substantial portions of the Software.
-//!
-//! THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//! IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//! FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//! AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//! LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//! OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//! SOFTWARE.
 //!
 //! ## Maintainer(s)
 //!
@@ -76,10 +81,14 @@ pub mod auth;
 pub mod error;
 
 ///
+/// defines data structures for caching API responses for various requests
+///
+pub mod caching;
+
+///
 /// defines types for handling persistence of authentication details (tokens / client credentials)
 ///
 pub mod persistance;
-
 ///
 /// Query Request and Response types
 ///
@@ -89,15 +98,10 @@ pub mod query;
 ///
 pub mod vm;
 
-///
-/// defines caching elements and modules for caching VMInfo responses
-///
-#[cfg(feature = "caching")]
-pub mod caching {
-	pub mod redis;
-}
+use std::fmt::{Debug, Display};
 
-use std::fmt::Display;
+use caching::redis_cache::VMResultsCacheRedis;
+use caching::Cache;
 
 use crate::query::QueryResponseType;
 use crate::query::{QueryRequest, QueryResponse};
@@ -105,6 +109,7 @@ use auth::{AzCredentials, Method};
 use error::{AuthErrorKind, Error, Kind, VMInfoResult};
 use persistance::{FileTokenStore, PersistantStorage};
 use serde::{Deserialize, Serialize};
+use vm::VirtualMachine;
 
 ///
 /// default management endpoint for querying data from Resource Graph
@@ -137,31 +142,45 @@ impl Default for AuthTokens {
 	}
 }
 
+///
+/// Defines the vminfo Client (with caching)
+///
 #[derive(Debug, Clone)]
-///
-/// Defines the vminfo Client
-///
-pub struct Client<PS>
+pub struct Client<PS, RC>
 where
 	PS: PersistantStorage<AzCredentials>,
+	RC: Cache<VirtualMachine> + Clone,
 {
 	tenant_id: String,
 	client_id: String,
 	client_secret: Option<String>,
 	active_tokens: Option<AuthTokens>,
 	token_store: PS,
+	result_cache: Option<RC>,
 	subscriptions: Option<Vec<String>>,
 }
 
-impl Client<FileTokenStore> {
+///
+/// implementation of specific client methods that rely on a Local File Credential Store and Redis Result Cache
+///
+/// this client provides flexibility for alternative implementations with a custom selection of Token/Credential persistance
+/// and VM Results cache implementations.
+///
+/// Bounds only on PersistantStorage that is capable of persisting 'AzCredentials' and Cache capable of caching VirtualMachine results
+///
+impl Client<FileTokenStore, VMResultsCacheRedis> {
 	///
-	/// creates a new Client using the 'FileTokenStore' persistence method
+	/// creates a new Client using the 'FileTokenStore' persistence method and 'VMResultsCacheRedis' cache
 	///
 	pub fn new(
 		app_name: &str,
 		tenant_id: &str,
 		client_id: &str,
 		client_secret: Option<String>,
+		redis_host: Option<&str>,
+		redis_port: Option<u16>,
+		redis_password: Option<String>,
+		redis_use_tls: Option<bool>,
 		subscriptions: Option<Vec<String>>,
 	) -> VMInfoResult<Self> {
 		Ok(Self {
@@ -170,6 +189,15 @@ impl Client<FileTokenStore> {
 			client_secret,
 			active_tokens: None,
 			token_store: FileTokenStore::new(app_name)?,
+			result_cache: match redis_host {
+				Some(h) => Some(VMResultsCacheRedis::new(
+					h,
+					redis_port.unwrap_or(6379u16),
+					redis_password,
+					redis_use_tls.unwrap_or(false),
+				)?),
+				_ => None,
+			},
 			subscriptions,
 		})
 	}
@@ -177,12 +205,27 @@ impl Client<FileTokenStore> {
 	///
 	/// creates a new vminfo Client from a persistant storage method
 	///
-	pub fn from_store(app_name: &str) -> VMInfoResult<Self> {
+	pub fn from_store(
+		app_name: &str,
+		redis_host: Option<&str>,
+		redis_port: Option<u16>,
+		redis_password: Option<String>,
+		redis_use_tls: Option<bool>,
+	) -> VMInfoResult<Self> {
 		let mut c = Self {
 			tenant_id: "".to_string(),
 			client_id: "".to_string(),
 			client_secret: None,
 			token_store: FileTokenStore::new(app_name)?,
+			result_cache: match redis_host {
+				Some(h) => Some(VMResultsCacheRedis::new(
+					h,
+					redis_port.unwrap_or(6739u16),
+					redis_password,
+					redis_use_tls.unwrap_or(false),
+				)?),
+				_ => None,
+			},
 			active_tokens: None,
 			subscriptions: None,
 		};
@@ -191,9 +234,10 @@ impl Client<FileTokenStore> {
 	}
 }
 
-impl<PS> Client<PS>
+impl<PS, RC> Client<PS, RC>
 where
 	PS: PersistantStorage<AzCredentials>,
+	RC: Cache<VirtualMachine> + Clone,
 {
 	///
 	/// performs login with Azure authentication server using the client_credentials OAuth2.0 flow described by [RFC6749](https://www.rfc-editor.org/rfc/rfc6749#section-4.4)
@@ -343,39 +387,80 @@ where
 		query_operand: &Vec<String>,
 		match_regexp: bool,
 		show_extensions: bool,
+		nocache: bool,
 		skip: Option<u64>,
 		top: Option<u16>,
 	) -> VMInfoResult<QueryResponse> {
-		let resp: VMInfoResult<QueryResponse> =
-			self.request(query_operand, match_regexp, show_extensions, skip, top);
+		let mut query_ops: Vec<String> = query_operand.clone();
+		let mut cached_results: Vec<VirtualMachine> = Vec::new();
 
-		match resp {
-			Ok(r) => Ok(r),
-			Err(err) => match err.kind() {
-				Kind::AuthenticationError(aek) => match aek {
-					AuthErrorKind::MissingToken => {
-						self
-							.reauth()?
-							.request(query_operand, match_regexp, show_extensions, skip, top)
+		if !nocache {
+			match self.clone().result_cache {
+				Some(cache) => {
+					query_ops = Vec::new();
+					for (_, q) in query_operand.into_iter().rev().enumerate() {
+						match cache.get(q.as_str())? {
+							Some(vm) => {
+								cached_results.push(vm);
+							}
+							_ => query_ops.push(q.clone()),
+						}
 					}
-					AuthErrorKind::TokenExpired => match self.auth_method() {
-						Method::ClientCredentials => {
+				}
+				_ => (),
+			};
+		}
+
+		if query_ops.len() > 0 {
+			let resp: VMInfoResult<QueryResponse> =
+				self.request(&query_ops, match_regexp, show_extensions, skip, top);
+
+			match resp {
+				Ok(mut r) => {
+					r.data.append(&mut cached_results);
+					Ok(r)
+				}
+				Err(err) => match err.kind() {
+					Kind::AuthenticationError(aek) => match aek {
+						AuthErrorKind::MissingToken => {
 							self
 								.reauth()?
-								.request(query_operand, match_regexp, show_extensions, skip, top)
+								.request(&query_ops, match_regexp, show_extensions, skip, top)
 						}
-						Method::DeviceCode => self.clone().exchange_refresh_token()?.request(
-							query_operand,
-							match_regexp,
-							show_extensions,
-							skip,
-							top,
-						),
+						AuthErrorKind::TokenExpired => match self.auth_method() {
+							Method::ClientCredentials => {
+								self
+									.reauth()?
+									.request(&query_ops, match_regexp, show_extensions, skip, top)
+							}
+							Method::DeviceCode => self.clone().exchange_refresh_token()?.request(
+								&query_ops,
+								match_regexp,
+								show_extensions,
+								skip,
+								top,
+							),
+						},
+						_ => Err(err)?,
 					},
+					Kind::NoneFoundError => {
+						if cached_results.len() > 0 {
+							Ok(QueryResponse {
+								total_results: cached_results.len() as u64,
+								data: cached_results,
+							})
+						} else {
+							Err(err)?
+						}
+					}
 					_ => Err(err)?,
 				},
-				_ => Err(err)?,
-			},
+			}
+		} else {
+			Ok(QueryResponse {
+				total_results: cached_results.len() as u64,
+				data: cached_results,
+			})
 		}
 	}
 
@@ -451,6 +536,15 @@ where
 						.as_str(),
 					));
 				}
+
+				match self.clone().result_cache {
+					Some(cache) => {
+						for (_, vm) in r.clone().data.into_iter().enumerate() {
+							cache.put(vm.clone().vm_name.unwrap().as_str(), &vm)?;
+						}
+					}
+					_ => (),
+				};
 
 				Ok(r)
 			}
@@ -536,18 +630,20 @@ where
 	}
 }
 
-impl<PS> AsMut<Client<PS>> for Client<PS>
+impl<PS, RC> AsMut<Client<PS, RC>> for Client<PS, RC>
 where
 	PS: PersistantStorage<AzCredentials>,
+	RC: Cache<VirtualMachine> + Clone,
 {
-	fn as_mut(&mut self) -> &mut Client<PS> {
+	fn as_mut(&mut self) -> &mut Client<PS, RC> {
 		self
 	}
 }
 
-impl<PS> Display for Client<PS>
+impl<PS, RC> Display for Client<PS, RC>
 where
 	PS: PersistantStorage<AzCredentials>,
+	RC: Cache<VirtualMachine> + Clone,
 {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(
@@ -559,6 +655,6 @@ where
 }
 
 ///
-/// defines a Client which uses local disk storage to persist token data for vminfo
+/// defines a Client which uses local disk storage to persist credential/token data for vminfo
 ///
-pub type LocalClient = Client<FileTokenStore>;
+pub type LocalClient = Client<FileTokenStore, VMResultsCacheRedis>;
