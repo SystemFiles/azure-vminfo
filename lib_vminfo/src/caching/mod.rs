@@ -21,5 +21,5 @@ where
 	///
 	/// retrieve a stored cached value (if one exists) - Error if None exists
 	///
-	fn get(&self, key: &str) -> VMInfoResult<Option<DT>>;
+	fn get(&self, key: &str) -> VMInfoResult<DT>;
 }

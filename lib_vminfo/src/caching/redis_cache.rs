@@ -65,15 +65,17 @@ impl Cache<VirtualMachine> for VMResultsCacheRedis {
 		Ok(())
 	}
 
-	fn get(&self, key: &str) -> VMInfoResult<Option<VirtualMachine>> {
+	fn get(&self, key: &str) -> VMInfoResult<VirtualMachine> {
 		let mut conn = self
 			.client
 			.get_connection()
 			.map_err(|err| error::caching(Some(err), "failed to make connection to redis cache"))?;
 
-		match conn.get(key) {
-			Ok(r) => Ok(Some(r)),
-			_ => Ok(None),
-		}
+		Ok(conn.get(key).map_err(|err| {
+			error::caching(
+				Some(err),
+				format!("could not find Virtual Machine with key {} in Redis", key).as_str(),
+			)
+		})?)
 	}
 }

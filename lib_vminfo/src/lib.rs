@@ -398,9 +398,9 @@ where
 			match self.clone().result_cache {
 				Some(cache) => {
 					query_ops = Vec::new();
-					for (_, q) in query_operand.into_iter().rev().enumerate() {
-						match cache.get(q.as_str())? {
-							Some(vm) => {
+					for (_, q) in query_operand.into_iter().enumerate() {
+						match cache.get(q.to_lowercase().as_str()) {
+							Ok(vm) => {
 								cached_results.push(vm);
 							}
 							_ => query_ops.push(q.clone()),
@@ -540,7 +540,7 @@ where
 				match self.clone().result_cache {
 					Some(cache) => {
 						for (_, vm) in r.clone().data.into_iter().enumerate() {
-							cache.put(vm.clone().vm_name.unwrap().as_str(), &vm)?;
+							cache.put(vm.clone().vm_name.unwrap().to_lowercase().as_str(), &vm)?;
 						}
 					}
 					_ => (),

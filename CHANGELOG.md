@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [ 1.1.1 ] - 2022-11-9 15:13:41
+
+> BENS-0012 Hotfix: Resolve Strange Behaviour of Caching with Specific Keys
+
+### Changed
+
+- `30e9334` - BENS-0012 updated crate versions
+- `3975eb2` - BENS-0012 some better name handling for vm caching
+- `cba5759` - BENS-0012 added some debugging
+
+
+
 ## [ 1.1.0 ] - 2022-11-8 23:0:49
 
 > CLOUD-16508 Resource Result Caching
@@ -19,24 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ef527fb` - CLOUD-16508 squashed bug where cached results dont come through with all bad non-cached queries
 - `38eac85` - CLOUD-16508 removed caching as separate compile feature since client supports no-cache out of the box
 - `d58b1db` - CLOUD-16508 removed debug messages
-- `08704c2` - CLOUD-16508 Test Build (15)
-- `ce5cb46` - CLOUD-16508 Test Build (14)
-- `d54d4b4` - CLOUD-16508 Test Build (13)
-- `745dd6e` - CLOUD-16508 Test Build (12)
-- `9d8a9ed` - CLOUD-16508 Test Build (11)
-- `77935e3` - CLOUD-16508 Test Build (10)
-- `88a3012` - CLOUD-16508 Test Build (9)
-- `f4fd431` - CLOUD-16508 Test Build (8)
-- `0da851c` - CLOUD-16508 Test Build (7)
-- `5837e41` - CLOUD-16508 Test Build (6)
-- `e082e92` - CLOUD-16508 Test Build (5)
-- `7130799` - CLOUD-16508 Test Build (4)
-- `cbffb1f` - CLOUD-16508 Test Build (3)
 - `e862684` - CLOUD-16508 added very basic cache retrieval for query method on VMInfo client
 - `5954b59` - CLOUD-16508 added very basic cache retrieval for query method on VMInfo client
-- `c5d1be3` - CLOUD-16508 Test Build (2)
-- `9c26bff` - CLOUD-16508 Test Build (1)
-- `4cca2dc` - CLOUD-16508 Test Build (0)
 
 
 
@@ -79,10 +75,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `f2e9acb` - BENS-0008 final fixup
 - `a8d3d22` - BENS-0008 removed old debug messages
-- `40afd38` - BENS-0008 Test Build (3)
-- `23f9645` - BENS-0008 Test Build (2)
-- `bee6e3b` - BENS-0008 Test Build (1)
-- `335a467` - BENS-0008 Test Build (0)
 - `0315f11` - BENS-0008 missing logout option description
 - `a4dffc3` - BENS-0008 added option to clear local token cache
 - `71f8d99` - BENS-0008 refactored auth again
@@ -191,21 +183,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ccc524f` - ICP-9510 remove color since it mysteriously resorts keys in an ugly way (will revisit)
 - `4eae6b3` - ICP-9510 added color to output
 - `d96b626` - ICP-9510 remove old debug code
-- `60bced0` - ICP-9510 Test Build (16)
-- `53132d0` - ICP-9510 Test Build (15)
-- `60cea05` - ICP-9510 Test Build (14)
-- `fce0f39` - ICP-9510 Test Build (13)
 - `2e720be` - ICP-9510 added remainder for final page
-- `1ad2af3` - ICP-9510 Test Build (12)
-- `0ed2eff` - ICP-9510 Test Build (11)
-- `2e8b565` - ICP-9510 Test Build (10)
-- `bb2a001` - ICP-9510 Test Build (9)
-- `739c165` - ICP-9510 Test Build (8)
-- `9065081` - ICP-9510 Test Build (7)
-- `c5ffc6f` - ICP-9510 Test Build (6)
-- `52bc364` - ICP-9510 Test Build (5)
 - `682293b` - ICP-9510 made Virtual Machine data safer
-- `f86b846` - ICP-9510 Test Build (4)
 - `4e620eb` - ICP-9510 custom deserializer implemented for ip addresses
 - `324cf7a` - ICP-9510 made ipv4 optionally nullable
 - `0cf1045` - ICP-9510 handle null|string in serialization/deserialization
@@ -215,10 +194,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `2ec4bc5` - ICP-9510 implemented credential query and save to config
 - `c8cbc82` - ICP-9510 removed --dry-run from cli args in crate deploy CI
 - `1fd9ae1` - ICP-9510 CI/CD implemented deploy for libs and CLI util
-- `2679b3e` - ICP-9510 Test Build (3)
-- `66fd53f` - ICP-9510 Test Build (2)
-- `dd7fc14` - ICP-9510 Test Build (1)
-- `54ac623` - ICP-9510 Test Build (0)
 - `c048950` - ICP-9510 added deployment workflow with dry-run for now
 - `bb2de15` - ICP-9510 added tests
 - `b697c32` - ICP-9510 fixed regexp match query formatting
