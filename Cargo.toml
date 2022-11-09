@@ -1,14 +1,27 @@
 [package]
 name = "az-vminfo"
-description = "A basic CLI utility to grab useful Virtual Machine metadata and instance data from the Azure Cloud using the Resouce Graph API"
+description = "A Rust utility to pull detailed virtual machine data from a configured Azure tenant using the Azure Resource Graph APIs"
 readme = "./README.md"
 homepage = "https://www.statcan.gc.ca"
 repository = "https://github.com/SystemFiles/azure-vminfo/"
 license = "MIT"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2021"
 authors = ["Ben Sykes <ben.sykes@statcan.gc.ca"]
 keywords = ["cli", "azure", "vm", "metadata", "instancedata"]
+
+[package.metadata.generate-rpm]
+summary = "A Rust utility for pulling Azure VM metadata from the Azure Resource Graph API"
+assets = [
+  { source = "target/release/vminfo", dest = "/usr/bin/vminfo", mode = "755" },
+  { source = "README.md", dest = "/opt/docs/az-vminfo/README.md", mode = "444", doc = true },
+  { source = "CHANGELOG.md", dest = "/opt/docs/az-vminfo/CHANGELOG.md", mode = "444", doc = true },
+  { source = "LICENSE", dest = "/opt/docs/az-vminfo/LICENSE", mode = "444", doc = true }
+]
+
+[package.metadata.generate-rpm.requires]
+openssl = ">= 1"
+openssl-devel = ">= 1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

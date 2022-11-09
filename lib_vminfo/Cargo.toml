@@ -1,11 +1,11 @@
 [package]
 name = "lib_vminfo"
-description = "A library designed to idiomatically pull instance data and metadata from Azure for Virtual Machines"
+description = "A library designed to idiomatically pull instance data and metadata from Azure for Virtual Machines using the Azure Resource Graph API"
 homepage = "https://www.statcan.gc.ca"
 repository = "https://github.com/SystemFiles/azure-vminfo/"
 readme = "./README.md"
 license = "MIT"
-version = "1.1.1"
+version = "1.1.2"
 authors = ["Ben Sykes <ben.sykes@statcan.gc.ca"]
 edition = "2021"
 keywords = ["vm", "metadata", "instancedata", "azure", "library"]

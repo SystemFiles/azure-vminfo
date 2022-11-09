@@ -17,15 +17,6 @@ lib_vminfo = { version = "1.0", path = "./lib_vminfo" }
 
 ```rust
 
-// using a local client (local file cache)
-let client: LocalClient = LocalClient::new(
-	APP_NAME,
-	tenant_id,
-	client_id,
-	Some(client_secret),
-	vec!["sub_id1", ... "sub_idN"],
-)?.login_client_credentials()?;
-
 // get the first 100 VMs that match the provided regexp
 let resp: QueryResponse = client.query_vminfo(
 	vec!["ubuntu-vm[0-9]+"],
