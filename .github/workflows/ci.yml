@@ -68,7 +68,7 @@ jobs:
           args: --manifest-path ${{ matrix.lib_manifests }} --all-features
     needs:
       - rust_tests
-  rust_deploy_app:
+  rust_deploy_app_crates:
     name: Deploy CLI App to crates.io
     runs-on: ubuntu-latest
     strategy: 
@@ -89,6 +89,13 @@ jobs:
         with:
           command: publish
           args: --manifest-path ./Cargo.toml --all-features
+    needs:
+      - rust_tests
+      - rust_deploy_libs
+  rust_deploy_app_gh:
+    name: Deploy CLI App as Github Release
+    runs-on: ubuntu-latest
+    steps:
       - name: cross-compile rust binary for release
         uses: actions-rs/cargo@v1
         with:
