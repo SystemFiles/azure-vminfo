@@ -87,6 +87,11 @@ pub struct VirtualMachine {
 	///
 	#[serde(default)]
 	extensions: Vec<VirtualMachineExtension>,
+	///
+	/// A list of Azure resource tags associated with an Azure Virtual Machine
+	/// 
+	#[serde(default)]
+	tags: Vec<String>,
 }
 
 impl Default for VirtualMachine {
@@ -107,6 +112,7 @@ impl Default for VirtualMachine {
 			virtual_network: None,
 			subnet: None,
 			extensions: vec![],
+			tags: vec![],
 		}
 	}
 }
