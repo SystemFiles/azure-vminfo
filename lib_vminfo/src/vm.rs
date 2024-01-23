@@ -91,7 +91,7 @@ pub struct VirtualMachine {
 	/// A list of Azure resource tags associated with an Azure Virtual Machine
 	/// 
 	#[serde(default)]
-	tags: Vec<String>,
+	tags: Vec<AzureTag>,
 }
 
 impl Default for VirtualMachine {
@@ -195,6 +195,22 @@ impl Default for VirtualMachineExtension {
 		Self {
 			name: "XXX".to_string(),
 			version: "XXX".to_string(),
+		}
+	}
+}
+
+/// Describes Azure resource tags
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct  AzureTag {
+	key: String,
+	value: String
+}
+
+impl Default for AzureTag {
+	fn default() -> Self {
+		Self {
+			key: "KEY_X".to_string(),
+			value: "VAL_X".to_string(),
 		}
 	}
 }
