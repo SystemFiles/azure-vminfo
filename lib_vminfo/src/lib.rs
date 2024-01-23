@@ -154,7 +154,6 @@ where
 	tenant_id: String,
 	client_id: String,
 	client_secret: Option<String>,
-	active_tokens: Option<AuthTokens>,
 	token_store: PS,
 	result_cache: Option<RC>,
 	subscriptions: Option<Vec<String>>,
@@ -187,7 +186,6 @@ impl Client<FileTokenStore, VMResultsCacheRedis> {
 			tenant_id: String::from(tenant_id),
 			client_id: String::from(client_id),
 			client_secret,
-			active_tokens: None,
 			token_store: FileTokenStore::new(app_name)?,
 			result_cache: match redis_host {
 				Some(h) => Some(VMResultsCacheRedis::new(
@@ -226,7 +224,6 @@ impl Client<FileTokenStore, VMResultsCacheRedis> {
 				)?),
 				_ => None,
 			},
-			active_tokens: None,
 			subscriptions: None,
 		};
 
@@ -256,9 +253,7 @@ where
 						&self.client_secret,
 					))?;
 
-					self.active_tokens = Some(tokens);
-
-					self.save_credentials()?;
+					self.save_credentials(&tokens)?;
 
 					Ok(self)
 				}
@@ -270,9 +265,7 @@ where
 					&self.client_secret,
 				))?;
 
-				self.active_tokens = Some(tokens);
-
-				self.save_credentials()?;
+				self.save_credentials(&tokens)?;
 
 				Ok(self)
 			}
@@ -295,9 +288,7 @@ where
 						&None,
 					))?;
 
-					self.active_tokens = Some(tokens);
-
-					self.save_credentials()?;
+					self.save_credentials(&tokens)?;
 
 					Ok(self)
 				}
@@ -309,9 +300,7 @@ where
 					&None,
 				))?;
 
-				self.active_tokens = Some(tokens);
-
-				self.save_credentials()?;
+				self.save_credentials(&tokens)?;
 
 				Ok(self)
 			}
@@ -343,28 +332,28 @@ where
 	/// - Will return an error if there are no active tokens in the client (must authenticate first using login()).
 	/// - This function may also fail if there is a problem writing to the persistant storage.
 	///
-	pub fn save_credentials(&self) -> VMInfoResult<()> {
-		if let Some(access_token) = self.access_token() {
-			let client_credentials = AzCredentials {
-				tenant_id: self.tenant_id.clone(),
-				client_id: self.client_id.clone(),
-				client_secret: self.client_secret.clone(),
-				tokens: AuthTokens {
-					access_token,
-					refresh_token: self.refresh_token(),
-				},
-			};
+	pub fn save_credentials(&self, auth_tokens: &AuthTokens) -> VMInfoResult<()> {
+		// if let Some(access_token) = self.access_token() {
+		// 	let client_credentials = AzCredentials {
+		// 		tenant_id: self.tenant_id.clone(),
+		// 		client_id: self.client_id.clone(),
+		// 		client_secret: self.client_secret.clone(),
+		// 		tokens: AuthTokens {
+		// 			access_token,
+		// 			refresh_token: self.refresh_token(),
+		// 		},
+		// 	};
 
-			self.token_store.write(&client_credentials)?;
+		let client_credentials = AzCredentials {
+			tenant_id: self.tenant_id.clone(),
+			client_id: self.client_id.clone(),
+			client_secret: self.client_secret.clone(),
+			tokens: auth_tokens.clone(),
+		};
 
-			Ok(())
-		} else {
-			Err(error::auth(
-				None::<Error>,
-				AuthErrorKind::MissingToken,
-				"no access token is available from this Client",
-			))
-		}
+		self.token_store.write(&client_credentials)?;
+
+		Ok(())
 	}
 
 	///
@@ -598,54 +587,22 @@ where
 	///
 	/// - May fail to read persistant storage
 	///
-	pub fn load_credentials(&mut self) -> VMInfoResult<Self> {
+	pub fn load_credentials(&self) -> VMInfoResult<AzCredentials> {
 		let client_credentials = self.token_store.read()?;
 
-		self.tenant_id = client_credentials.tenant_id;
-		self.client_id = client_credentials.client_id;
-		self.client_secret = client_credentials.client_secret;
-
-		self.active_tokens = Some(AuthTokens {
-			access_token: client_credentials.tokens.access_token,
-			refresh_token: client_credentials.tokens.refresh_token,
-		});
-
-		Ok(self.clone())
-	}
-	///
-	/// get an immutable access token from Client's memory
-	///
-	pub fn access_token(&self) -> Option<String> {
-		match &self.active_tokens {
-			Some(tokens) => Some(tokens.access_token.clone()),
-			_ => None,
-		}
-	}
-	///
-	/// get an immutable refresh token from Client's memory
-	///
-	pub fn refresh_token(&self) -> Option<String> {
-		match &self.active_tokens {
-			Some(tokens) => tokens.refresh_token.to_owned(),
-			_ => None,
-		}
+		Ok(client_credentials)
 	}
 
 	///
 	/// will exchange a refresh token using the auth module for a new set of access and refresh tokens
 	///
-	pub fn exchange_refresh_token(&mut self) -> VMInfoResult<Self> {
-		let rt = self.refresh_token();
-		let tokens: AuthTokens = auth::exchange_refresh_tokens(&self.tenant_id, &self.client_id, rt)?;
+	pub fn exchange_refresh_token(&self) -> VMInfoResult<AuthTokens> {
+		let client_credentials = self.load_credentials()?;
+		let tokens: AuthTokens = auth::exchange_refresh_tokens(&self.tenant_id, &self.client_id, client_credentials.tokens.refresh_token)?;
 
-		self.active_tokens = Some(AuthTokens {
-			access_token: tokens.access_token,
-			refresh_token: tokens.refresh_token,
-		});
+		self.save_credentials(&tokens)?;
 
-		self.save_credentials()?;
-
-		Ok(self.clone())
+		Ok(tokens)
 	}
 	///
 	/// clears credentials from token/credential cache

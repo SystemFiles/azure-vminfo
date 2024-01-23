@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - feat(cli): added additional search field for tags
 
+### Changed
+
+- update(additional_fields): for optional fields, only display fields that have values
+
 ## [ 1.1.1 ] - 2022-11-9 15:13:41
 
 > BENS-0012 Hotfix: Resolve Strange Behaviour of Caching with Specific Keys
