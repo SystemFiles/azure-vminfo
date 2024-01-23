@@ -10,7 +10,7 @@ To install and use this library, simply add it to your `[dependencies]` in your 
 
 ```toml
 [dependencies]
-lib_vminfo = { version = "1.0", path = "./lib_vminfo" }
+lib_vminfo = { version = "1.2", path = "./lib_vminfo" }
 ```
 
 ## Usage

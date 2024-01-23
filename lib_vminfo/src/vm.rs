@@ -3,6 +3,8 @@
 //! Provides a model for Virtual Machines
 //!
 //!
+use std::collections::HashMap;
+use std::fmt::Debug;
 use std::io;
 
 use redis::{from_redis_value, FromRedisValue, ToRedisArgs};
@@ -85,8 +87,13 @@ pub struct VirtualMachine {
 	///
 	/// A List of Azure Virtual Machine Extensions that are installed for this VM (None if not requested)
 	///
-	#[serde(default)]
-	extensions: Vec<VirtualMachineExtension>,
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	extensions: Option<Vec<VirtualMachineExtension>>,
+	///
+	/// A list of Azure resource tags associated with an Azure Virtual Machine
+	///
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	tags: Option<HashMap<String, String>>,
 }
 
 impl Default for VirtualMachine {
@@ -106,7 +113,8 @@ impl Default for VirtualMachine {
 			vm_size: None,
 			virtual_network: None,
 			subnet: None,
-			extensions: vec![],
+			extensions: None,
+			tags: None,
 		}
 	}
 }

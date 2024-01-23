@@ -387,6 +387,7 @@ where
 		query_operand: &Vec<String>,
 		match_regexp: bool,
 		show_extensions: bool,
+		show_tags: bool,
 		nocache: bool,
 		skip: Option<u64>,
 		top: Option<u16>,
@@ -413,7 +414,14 @@ where
 
 		if query_ops.len() > 0 {
 			let resp: VMInfoResult<QueryResponse> =
-				self.request(&query_ops, match_regexp, show_extensions, skip, top);
+				self.request(
+					&query_ops,
+					match_regexp,
+					show_extensions,
+					show_tags,
+					skip,
+					top,
+				);
 
 			match resp {
 				Ok(mut r) => {
@@ -425,18 +433,33 @@ where
 						AuthErrorKind::MissingToken => {
 							self
 								.reauth()?
-								.request(&query_ops, match_regexp, show_extensions, skip, top)
+								.request(
+									&query_ops,
+									match_regexp,
+									show_extensions,
+									show_tags,
+									skip,
+									top,
+								)
 						}
 						AuthErrorKind::TokenExpired => match self.auth_method() {
 							Method::ClientCredentials => {
 								self
 									.reauth()?
-									.request(&query_ops, match_regexp, show_extensions, skip, top)
+									.request(
+										&query_ops,
+										match_regexp,
+										show_extensions,
+										show_tags,
+										skip,
+										top,
+									)
 							}
 							Method::DeviceCode => self.clone().exchange_refresh_token()?.request(
 								&query_ops,
 								match_regexp,
 								show_extensions,
+								show_tags,
 								skip,
 								top,
 							),
@@ -478,6 +501,7 @@ where
 		query_operand: &Vec<String>,
 		match_regexp: bool,
 		show_extensions: bool,
+		show_tags: bool,
 		skip: Option<u64>,
 		top: Option<u16>,
 	) -> VMInfoResult<QueryResponse> {
@@ -487,6 +511,7 @@ where
 			query_operand,
 			match_regexp,
 			show_extensions,
+			show_tags,
 			skip,
 			top,
 			&self.subscriptions,

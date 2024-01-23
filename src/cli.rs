@@ -33,6 +33,10 @@ pub struct Cli {
 	#[arg(short = 'r', long = "match-regexp", required = false)]
 	pub match_regexp: bool,
 
+	/// Specifies whether or not to display Azure tags associated with each VM
+	#[arg(short = 't', long = "tags", required = false)]
+	pub show_tags: bool,
+
 	/// Specifies whether or not to display Azure extensions for each VM
 	#[arg(short = 'e', long = "extensions", required = false)]
 	pub show_extensions: bool,
@@ -42,8 +46,8 @@ impl std::fmt::Display for Cli {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(
 			f,
-			"vminfo: Name(s): {:?}, Regex: {}, Show Extensions: {}",
-			self.vm_operand, self.match_regexp, self.show_extensions
+			"vminfo: Name(s): {:?}, Regex: {}, Show Extensions: {}, Show Tags: {}",
+			self.vm_operand, self.match_regexp, self.show_extensions, self.show_tags
 		)
 	}
 }
@@ -54,6 +58,7 @@ impl Default for Cli {
 			vm_operand: vec!["".to_string()],
 			match_regexp: false,
 			show_extensions: false,
+			show_tags: false,
 			perform_login: false,
 			perform_logout: false,
 			no_cache: false,

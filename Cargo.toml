@@ -5,7 +5,7 @@ readme = "./README.md"
 homepage = "https://www.statcan.gc.ca"
 repository = "https://github.com/SystemFiles/azure-vminfo/"
 license = "MIT"
-version = "1.0.2"
+version = "1.2.0"
 edition = "2021"
 authors = ["Ben Sykes <ben.sykes@statcan.gc.ca"]
 keywords = ["cli", "azure", "vm", "metadata", "instancedata"]
@@ -22,7 +22,7 @@ opt-level = 3
 codegen-units = 1
 
 [dependencies]
-lib_vminfo = { version = "1.0", path = "./lib_vminfo"}
+lib_vminfo = { version = "1.2", path = "./lib_vminfo"}
 rpassword = { version = "7.0.0" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
