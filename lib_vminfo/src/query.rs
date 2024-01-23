@@ -42,6 +42,7 @@ impl QueryRequest {
 		query_items: &Vec<String>,
 		match_regex: bool,
 		show_extensions: bool,
+		show_tags: bool,
 		skip: Option<u64>,
 		top: Option<u16>,
 		subscriptions: &Option<Vec<String>>,
@@ -49,6 +50,7 @@ impl QueryRequest {
 		let mut search_query: String = String::new();
 		let mut comparison_operator: &str = "in";
 		let mut extensions_join: &str = "";
+		let mut tags_join: &str = "";
 		let skip_param: u64 = skip.unwrap_or(0);
 		let top_param: u16 = top.unwrap_or(1000);
 
@@ -83,8 +85,13 @@ impl QueryRequest {
 			extensions_join = "| join kind=leftouter(Resources | where type =~ 'microsoft.compute/virtualmachines/extensions' | extend vmId = substring(id, 0, indexof(id, '/extensions')) | extend d = pack('name', name, 'version', properties.typeHandlerVersion) | summarize extensions = make_list(d) by vmId) on vmId";
 		}
 
+		// optionally inject tag information
+		if show_tags {
+			tags_join = ", tags=tags"
+		}
+
 		// template out the query
-		let query = format!("Resources | where type =~ 'microsoft.compute/virtualmachines' | where tolower(tostring(name)) {} {} | extend nics=array_length(properties.networkProfile.networkInterfaces) | mv-expand nic=properties.networkProfile.networkInterfaces | where nics == 1 or nic.properties.primary =~ 'true' or isempty(nic) | project subscriptionId, rg=resourceGroup, vmId = id, vmName = name, location = tostring(location), created = tostring(properties.timeCreated), vmSize=tostring(properties.hardwareProfile.vmSize), nicId = tostring(nic.id), osType = tostring(properties.storageProfile.osDisk.osType), osName = tostring(properties.extended.instanceView.osName), osVersion = tostring(properties.extended.instanceView.osVersion), powerstate = tostring(properties.extended.instanceView.powerState.code) {} | join kind=leftouter (ResourceContainers | where type=='microsoft.resources/subscriptions'| project sub=name, subscriptionId) on subscriptionId | join kind=leftouter (Resources| where type =~ 'microsoft.network/networkinterfaces'| extend ipConfigsCount=array_length(properties.ipConfigurations)| extend subnetId = tostring(properties.ipConfigurations[0].properties.subnet.id)| extend virtualNetwork = split(substring(subnetId, indexof(subnetId, '/virtualNetworks/') + strlen('/virtualNetworks/')), '/')[0]| extend subnet = substring(subnetId, indexof(subnetId, '/subnets/') + strlen('/subnets/'))| mv-expand ipconfig=properties.ipConfigurations| where ipConfigsCount == 1 or ipconfig.properties.primary =~ 'true'| project nicId = id, subnet, virtualNetwork, privateIp = tostring(ipconfig.properties.privateIPAddress))on nicId| order by subnet asc", comparison_operator, search_query, extensions_join);
+		let query = format!("Resources | where type =~ 'microsoft.compute/virtualmachines' | where tolower(tostring(name)) {} {} | extend nics=array_length(properties.networkProfile.networkInterfaces) | mv-expand nic=properties.networkProfile.networkInterfaces | where nics == 1 or nic.properties.primary =~ 'true' or isempty(nic) | project subscriptionId, rg=resourceGroup, vmId = id, vmName = name, location = tostring(location), created = tostring(properties.timeCreated), vmSize=tostring(properties.hardwareProfile.vmSize), nicId = tostring(nic.id), osType = tostring(properties.storageProfile.osDisk.osType), osName = tostring(properties.extended.instanceView.osName), osVersion = tostring(properties.extended.instanceView.osVersion), powerstate = tostring(properties.extended.instanceView.powerState.code){} {} | join kind=leftouter (ResourceContainers | where type=='microsoft.resources/subscriptions'| project sub=name, subscriptionId) on subscriptionId | join kind=leftouter (Resources| where type =~ 'microsoft.network/networkinterfaces'| extend ipConfigsCount=array_length(properties.ipConfigurations)| extend subnetId = tostring(properties.ipConfigurations[0].properties.subnet.id)| extend virtualNetwork = split(substring(subnetId, indexof(subnetId, '/virtualNetworks/') + strlen('/virtualNetworks/')), '/')[0]| extend subnet = substring(subnetId, indexof(subnetId, '/subnets/') + strlen('/subnets/'))| mv-expand ipconfig=properties.ipConfigurations| where ipConfigsCount == 1 or ipconfig.properties.primary =~ 'true'| project nicId = id, subnet, virtualNetwork, privateIp = tostring(ipconfig.properties.privateIPAddress))on nicId| order by subnet asc", comparison_operator, search_query, tags_join,extensions_join);
 
 		Self {
 			query,
@@ -207,7 +214,7 @@ mod query_request_tests {
 		use super::QueryRequest;
 		let hostname = vec!["linux-01".to_string()];
 
-		let req_body = QueryRequest::make(&hostname, false, false, None, None, &None);
+		let req_body = QueryRequest::make(&hostname, false, false, false, None, None, &None);
 
 		assert_eq!(req_body.options.skip, 0);
 		assert_eq!(req_body.options.top, 1000);
@@ -225,7 +232,7 @@ mod query_request_tests {
 			"ubuntu-test-04".to_string(),
 		];
 
-		let req_body = QueryRequest::make(&hostnames, false, false, None, None, &None);
+		let req_body = QueryRequest::make(&hostnames, false, false, false, None, None, &None);
 
 		assert_eq!(req_body.options.skip, 0);
 		assert_eq!(req_body.options.top, 1000);
@@ -240,7 +247,7 @@ mod query_request_tests {
 		use super::QueryRequest;
 		let hostnames: Vec<String> = vec!["linux-[0-9]+".to_string()];
 
-		let req_body = QueryRequest::make(&hostnames, true, false, None, None, &None);
+		let req_body = QueryRequest::make(&hostnames, true, false, false, None, None, &None);
 
 		assert_eq!(req_body.options.skip, 0);
 		assert_eq!(req_body.options.top, 1000);
@@ -257,7 +264,7 @@ mod query_request_tests {
 			"ubuntu-test-04".to_string(),
 		];
 
-		let req_body = QueryRequest::make(&hostnames, false, true, None, None, &None);
+		let req_body = QueryRequest::make(&hostnames, false, true, false, None, None, &None);
 
 		assert_eq!(req_body.options.skip, 0);
 		assert_eq!(req_body.options.top, 1000);
@@ -270,11 +277,33 @@ mod query_request_tests {
 	}
 
 	#[test]
+	fn query_tags() {
+		use super::QueryRequest;
+		let hostnames: Vec<String> = vec![
+			"linux-01".to_string(),
+			"linux-02".to_string(),
+			"windows-98".to_string(),
+			"ubuntu-test-04".to_string(),
+		];
+
+		let req_body = QueryRequest::make(&hostnames, false, false, true, None, None, &None);
+
+		assert_eq!(req_body.options.skip, 0);
+		assert_eq!(req_body.options.top, 1000);
+		assert_eq!(req_body.query.contains("matches regex"), false);
+		assert!(req_body.query.contains("linux-01"));
+		assert!(req_body.query.contains("linux-02"));
+		assert!(req_body.query.contains("windows-98"));
+		assert!(req_body.query.contains("ubuntu-test-04"));
+		assert!(req_body.query.contains(", tags=tags"))
+	}
+
+	#[test]
 	fn query_with_custom_page_size() {
 		use super::QueryRequest;
 		let hostnames: Vec<String> = vec![".*linux-[0-9]+$".to_string()];
 
-		let req_body = QueryRequest::make(&hostnames, true, false, None, Some(150), &None);
+		let req_body = QueryRequest::make(&hostnames, true, false, false, None, Some(150), &None);
 
 		assert_eq!(req_body.options.skip, 0);
 		assert_eq!(req_body.options.top, 150);
@@ -285,7 +314,7 @@ mod query_request_tests {
 		use super::QueryRequest;
 		let hostnames: Vec<String> = vec![".*linux-[0-9]+$".to_string()];
 
-		let req_body = QueryRequest::make(&hostnames, true, false, Some(3000), Some(1000), &None);
+		let req_body = QueryRequest::make(&hostnames, true, false, false, Some(3000), Some(1000), &None);
 
 		assert_eq!(req_body.options.skip, 3000); // should request the 3rd page by skipping the first 3 page sizes (top)
 		assert_eq!(req_body.options.top, 1000); // page size
